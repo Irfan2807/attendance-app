@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Filament\Resources;
+namespace App\Filament\Admin\Resources;
 
-use App\Filament\Resources\AttendanceResource\Pages;
+use App\Filament\Admin\Resources\AttendanceResource\Pages;
 use App\Models\Attendance;
 use App\Services\AttendanceMetricsService;
 use Filament\Forms;
