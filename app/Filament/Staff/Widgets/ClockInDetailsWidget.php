@@ -6,6 +6,8 @@ use App\Models\Attendance;
 use Carbon\Carbon;
 use Filament\Widgets\Widget;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Lazy;
 
 #[Lazy]
@@ -36,54 +38,75 @@ class ClockInDetailsWidget extends Widget
     {
         $user = Auth::user();
         $now = Carbon::now();
-
         $todayStart = $now->copy()->startOfDay();
         $todayEnd = $now->copy()->endOfDay();
         $weekStart = $now->copy()->startOfWeek();
         $weekEnd = $now->copy()->endOfWeek();
         $monthStart = $now->copy()->startOfMonth();
 
-        $todayAttendances = Attendance::where('user_id', $user->id)
-            ->whereBetween('clock_in_time', [$todayStart, $todayEnd])
-            ->get();
+        $this->stats = Cache::remember('clock_in_details_stats_' . $user->id, 60, function () use ($user, $now, $todayStart, $todayEnd, $weekStart, $weekEnd, $monthStart) {
+            $baseQuery = Attendance::where('user_id', $user->id);
+            $nowString = $now->toDateTimeString();
+            $dbDriver = DB::connection()->getDriverName();
 
-        $weekAttendances = Attendance::where('user_id', $user->id)
-            ->whereBetween('clock_in_time', [$weekStart, $weekEnd])
-            ->get();
+            $sumMinutes = static function ($query, string $nowRef, string $driver): int {
+                if ($driver === 'sqlite') {
+                    return (int) $query
+                        ->get(['clock_in_time', 'clock_out_time'])
+                        ->sum(function (Attendance $attendance) use ($nowRef): int {
+                            if (!$attendance->clock_in_time) {
+                                return 0;
+                            }
 
-        $monthAttendances = Attendance::where('user_id', $user->id)
-            ->whereBetween('clock_in_time', [$monthStart, $now])
-            ->get();
+                            $endTime = $attendance->clock_out_time ?? Carbon::parse($nowRef);
 
-        $activeShift = Attendance::where('user_id', $user->id)
-            ->whereNull('clock_out_time')
-            ->latest('clock_in_time')
-            ->first();
+                            if ($endTime->lte($attendance->clock_in_time)) {
+                                return 0;
+                            }
 
-        $lastShift = Attendance::where('user_id', $user->id)
-            ->latest('clock_in_time')
-            ->first();
+                            return $attendance->clock_in_time->diffInMinutes($endTime);
+                        });
+                }
 
-        $pendingCount = Attendance::where('user_id', $user->id)
-            ->whereIn('status', ['pending', 'temporary'])
-            ->count();
+                return (int) $query
+                    ->selectRaw('COALESCE(SUM(TIMESTAMPDIFF(MINUTE, clock_in_time, COALESCE(clock_out_time, ?))), 0) as total_minutes', [$nowRef])
+                    ->value('total_minutes');
+            };
 
-        $completedThisMonth = Attendance::where('user_id', $user->id)
-            ->whereBetween('clock_in_time', [$monthStart, $now])
-            ->whereNotNull('clock_out_time')
-            ->count();
+            $todayMinutes = $sumMinutes((clone $baseQuery)->whereBetween('clock_in_time', [$todayStart, $todayEnd]), $nowString, $dbDriver);
+            $weekMinutes = $sumMinutes((clone $baseQuery)->whereBetween('clock_in_time', [$weekStart, $weekEnd]), $nowString, $dbDriver);
+            $monthMinutes = $sumMinutes((clone $baseQuery)->whereBetween('clock_in_time', [$monthStart, $now]), $nowString, $dbDriver);
 
-        $this->stats = [
-            'todayMinutes' => $todayAttendances->sum(fn ($attendance) => $this->durationMinutes($attendance)),
-            'weekMinutes' => $weekAttendances->sum(fn ($attendance) => $this->durationMinutes($attendance)),
-            'monthMinutes' => $monthAttendances->sum(fn ($attendance) => $this->durationMinutes($attendance)),
-            'activeShift' => $activeShift,
-            'activeMinutes' => $activeShift ? $activeShift->clock_in_time->diffInMinutes($now) : 0,
-            'lastShift' => $lastShift,
-            'lastShiftMinutes' => $lastShift ? $this->durationMinutes($lastShift) : 0,
-            'pendingCount' => $pendingCount,
-            'completedThisMonth' => $completedThisMonth,
-        ];
+            $activeShift = (clone $baseQuery)
+                ->whereNull('clock_out_time')
+                ->latest('clock_in_time')
+                ->first(['id', 'site_name', 'status', 'clock_in_time', 'clock_out_time']);
+
+            $lastShift = (clone $baseQuery)
+                ->latest('clock_in_time')
+                ->first(['id', 'site_name', 'status', 'clock_in_time', 'clock_out_time']);
+
+            $pendingCount = (clone $baseQuery)
+                ->whereIn('status', ['pending', 'temporary'])
+                ->count();
+
+            $completedThisMonth = (clone $baseQuery)
+                ->whereBetween('clock_in_time', [$monthStart, $now])
+                ->whereNotNull('clock_out_time')
+                ->count();
+
+            return [
+                'todayMinutes' => $todayMinutes,
+                'weekMinutes' => $weekMinutes,
+                'monthMinutes' => $monthMinutes,
+                'activeShift' => $activeShift,
+                'activeMinutes' => $activeShift ? $activeShift->clock_in_time->diffInMinutes($now) : 0,
+                'lastShift' => $lastShift,
+                'lastShiftMinutes' => $lastShift ? $this->durationMinutes($lastShift) : 0,
+                'pendingCount' => $pendingCount,
+                'completedThisMonth' => $completedThisMonth,
+            ];
+        });
     }
 
     private function durationMinutes(Attendance $attendance): int

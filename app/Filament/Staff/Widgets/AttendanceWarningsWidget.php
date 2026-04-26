@@ -6,6 +6,7 @@ use App\Models\AttendanceInfraction;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Lazy;
 
 #[Lazy]
@@ -22,9 +23,16 @@ class AttendanceWarningsWidget extends BaseWidget
     {
         $user = Auth::user();
 
-        // Current month warnings
-        $monthlyWarnings = AttendanceInfraction::getMonthlyWarningCount($user->id);
-        $needsEscalation = AttendanceInfraction::needsManagerEscalation($user->id);
+        [$monthlyWarnings, $needsEscalation] = Cache::remember(
+            'attendance_warnings_' . $user->id,
+            120,
+            function () use ($user) {
+                $monthlyWarnings = AttendanceInfraction::getMonthlyWarningCount($user->id);
+
+                return [$monthlyWarnings, $monthlyWarnings >= 3];
+            }
+        );
+
         $totalInfractions = $user->incomplete_clock_out_count;
 
         return [

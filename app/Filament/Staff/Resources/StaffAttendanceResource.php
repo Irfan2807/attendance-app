@@ -4,6 +4,7 @@ namespace App\Filament\Staff\Resources;
 
 use App\Filament\Staff\Resources\StaffAttendanceResource\Pages;
 use App\Models\Attendance;
+use App\Services\AttendanceMetricsService;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -151,6 +152,22 @@ class StaffAttendanceResource extends Resource
                     ->dateTime('H:i:s')
                     ->formatStateUsing(fn($state) => $state ? $state->format('H:i:s') : 'Not clocked out')
                     ->sortable(),
+
+                Tables\Columns\TextColumn::make('worked_minutes')
+                    ->label('Duration')
+                    ->getStateUsing(fn (Attendance $record) => AttendanceMetricsService::formatMinutes(
+                        AttendanceMetricsService::workedMinutes($record)
+                    ))
+                    ->badge()
+                    ->color('info'),
+
+                Tables\Columns\TextColumn::make('overtime_minutes')
+                    ->label('Overtime')
+                    ->getStateUsing(fn (Attendance $record) => AttendanceMetricsService::formatMinutes(
+                        AttendanceMetricsService::overtimeMinutes($record)
+                    ))
+                    ->badge()
+                    ->color(fn (string $state) => $state === '0m' ? 'gray' : 'success'),
 
                 Tables\Columns\BadgeColumn::make('status')
                     ->colors([

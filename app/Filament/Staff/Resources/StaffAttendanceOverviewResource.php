@@ -4,6 +4,7 @@ namespace App\Filament\Staff\Resources;
 
 use App\Filament\Staff\Resources\StaffAttendanceOverviewResource\Pages;
 use App\Models\Attendance;
+use App\Services\AttendanceMetricsService;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -152,16 +153,19 @@ class StaffAttendanceOverviewResource extends Resource
 
                 Tables\Columns\TextColumn::make('hours_worked')
                     ->label('Duration')
-                    ->getStateUsing(function ($record) {
-                        if (!$record->clock_out_time) {
-                            return '—';
-                        }
-                        $hours = $record->clock_in_time->diffInHours($record->clock_out_time);
-                        $minutes = $record->clock_in_time->diffInMinutes($record->clock_out_time) % 60;
-                        return $hours > 0 ? "{$hours}h {$minutes}m" : "{$minutes}m";
-                    })
+                    ->getStateUsing(fn (Attendance $record) => AttendanceMetricsService::formatMinutes(
+                        AttendanceMetricsService::workedMinutes($record)
+                    ))
                     ->badge()
-                    ->color(fn ($state) => $state === '—' ? 'gray' : 'info'),
+                    ->color('info'),
+
+                Tables\Columns\TextColumn::make('overtime_minutes')
+                    ->label('Overtime')
+                    ->getStateUsing(fn (Attendance $record) => AttendanceMetricsService::formatMinutes(
+                        AttendanceMetricsService::overtimeMinutes($record)
+                    ))
+                    ->badge()
+                    ->color(fn (string $state) => $state === '0m' ? 'gray' : 'success'),
 
                 Tables\Columns\BadgeColumn::make('status')
                     ->label('Status')

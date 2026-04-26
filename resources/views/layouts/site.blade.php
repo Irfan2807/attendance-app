@@ -7,10 +7,10 @@
     
     <!-- Fonts & Styles -->
     <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700,800" rel="stylesheet" />
+    <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700,800|space-grotesk:400,500,600,700" rel="stylesheet" />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="antialiased font-sans text-gray-900 bg-white">
+<body class="antialiased font-sans text-gray-900 bg-white site-shell">
 
     <!-- Navbar -->
     <nav class="navbar">
@@ -24,8 +24,8 @@
         <ul class="nav-links">
             <li><a href="{{ route('home') }}">Home</a></li>
             <li><a href="{{ route('services') }}">Services</a></li>
-            <li><a href="{{ route('home') }}#timeline">Our Journey</a></li>
             <li><a href="{{ route('contact') }}">Contact Us</a></li>
+            <li><a href="{{ route('login') }}" class="nav-btn">Login</a></li>
             
             <!-- 
                SECRET LOGIC:
@@ -40,32 +40,33 @@
     @yield('content')
 
     <!-- Footer -->
-    <footer style="background-color: #111; color: white; padding: 60px 20px; margin-top: auto;">
-        <div style="max-width: 1200px; margin: 0 auto; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 50px;">
-            <div style="flex: 1; min-width: 250px;">
+    <footer class="site-footer">
+        <div class="site-footer-grid">
+            <div class="site-footer-col">
                 <div class="logo">
                     <img src="/images/logo.png" onerror="this.style.display='none'" alt="Logo" id="logo-img" style="height: 100px; margin-right: 10px;">
                 </div>
                 <!--<h3 style="color: var(--brand-orange); font-weight: 800; text-transform: uppercase; margin-bottom: 20px;">Tumpat Solutions</h3>-->
-                <p style="color: #999; line-height: 1.6;">Building Malaysia's future since 2005.</p>
+                <p class="site-footer-muted">Building Malaysia's future since 2005.</p>
             </div>
-            <div style="flex: 1; min-width: 250px;">
-                <h4 style="font-weight: 700; margin-bottom: 20px;">Quick Links</h4>
-                <ul style="color: #999; line-height: 2;">
-                    <li><a href="{{ route('home') }}" style="color: #999; text-decoration: none;">Home</a></li>
-                    <li><a href="{{ route('services') }}" style="color: #999; text-decoration: none;">Services</a></li>
-                    <li><a href="{{ route('contact') }}" style="color: #999; text-decoration: none;">Contact Us</a></li>
+            <div class="site-footer-col">
+                <h4 class="site-footer-title">Quick Links</h4>
+                <ul class="site-footer-list">
+                    <li><a href="{{ route('home') }}">Home</a></li>
+                    <li><a href="{{ route('services') }}">Services</a></li>
+                    <li><a href="{{ route('contact') }}">Contact Us</a></li>
                 </ul>
             </div>
-            <div style="flex: 1; min-width: 250px;">
-                <h4 style="font-weight: 700; margin-bottom: 20px;">Contact</h4>
-                <p style="color: #999; line-height: 1.6;">
-                    123, Jalan Telekom<br>50480 Kuala Lumpur<br>Malaysia<br><br>
-                    <strong>Email:</strong> info@tumpat.com
+            <div class="site-footer-col">
+                <h4 class="site-footer-title">Contact</h4>
+                <p class="site-footer-muted">
+                    Tumpat Solutions Sdn Bhd<br>Kuala Lumpur, Malaysia<br><br>
+                    <strong>Phone:</strong> 03-5611 9916<br>
+                    <strong>Email:</strong> enquiry@tumpatsolutions.com
                 </p>
             </div>
         </div>
-        <div style="text-align: center; color: #555; margin-top: 50px; padding-top: 20px; border-top: 1px solid #333;">
+        <div class="site-footer-bottom">
             &copy; {{ date('Y') }} Tumpat Solutions Sdn Bhd. All rights reserved.
         </div>
     </footer>

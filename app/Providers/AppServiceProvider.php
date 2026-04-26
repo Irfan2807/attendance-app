@@ -26,8 +26,8 @@ class AppServiceProvider extends ServiceProvider
         // This line tells Filament to use your custom LoginResponse
         $this->app->bind(LoginResponseContract::class, LoginResponse::class);
 
-        // Optionally force HTTPS locally when env says so
-        if (env('FORCE_HTTPS', false)) {
+        // Force HTTPS only outside local development to avoid breaking local asset URLs.
+        if (env('FORCE_HTTPS', false) && !app()->environment('local')) {
             URL::forceScheme('https');
         }
 

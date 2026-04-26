@@ -14,6 +14,9 @@
                 <th>Longitude</th>
                 <th>Status</th>
                 <th>Clock In</th>
+                <th>Clock Out</th>
+                <th>Duration</th>
+                <th>Overtime</th>
             </tr>
         </thead>
         <tbody>
@@ -26,6 +29,9 @@
                 <td>{{ $a->longitude }}</td>
                 <td>{{ $a->status }}</td>
                 <td>{{ $a->clock_in_time }}</td>
+                <td>{{ $a->clock_out_time ?? '—' }}</td>
+                <td>{{ \App\Services\AttendanceMetricsService::formatMinutes(\App\Services\AttendanceMetricsService::workedMinutes($a)) }}</td>
+                <td>{{ \App\Services\AttendanceMetricsService::formatMinutes(\App\Services\AttendanceMetricsService::overtimeMinutes($a)) }}</td>
             </tr>
             @endforeach
         </tbody>

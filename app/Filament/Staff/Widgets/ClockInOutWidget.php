@@ -3,7 +3,7 @@
 namespace App\Filament\Staff\Widgets;
 
 use App\Models\Attendance;
-use App\Models\User;
+use App\Services\AttendanceWindowService;
 use App\Services\AttendanceVerificationService;
 use Carbon\Carbon;
 use Filament\Widgets\Widget;
@@ -58,9 +58,17 @@ class ClockInOutWidget extends Widget
     public function refresh(): void
     {
         // Clear cache when refreshing to get fresh data
-        $cacheKey = 'attendance_state_' . Auth::user()->id . '_' . now()->format('Y-m-d');
-        Cache::forget($cacheKey);
+        $this->clearWidgetCaches();
         $this->loadAttendanceState();
+    }
+
+    private function clearWidgetCaches(): void
+    {
+        $userId = Auth::id();
+
+        Cache::forget('attendance_state_' . $userId);
+        Cache::forget('clock_in_details_stats_' . $userId);
+        Cache::forget('staff_stats_' . $userId);
     }
 
     public function loadAttendanceState(): void
@@ -68,9 +76,40 @@ class ClockInOutWidget extends Widget
         // Cache attendance state for 2 minutes to reduce database queries
         $cacheKey = 'attendance_state_' . Auth::user()->id;
         
-        // Find the most recent active shift (may span across days)
-        $todayAttendance = Cache::remember($cacheKey, 120, function () {
-            return Attendance::where('user_id', Auth::user()->id)
+        $attendanceState = Cache::remember($cacheKey, 120, function () {
+            $userId = Auth::user()->id;
+            $now = now();
+
+            // Check if there is an active shift first.
+            $activeShift = Attendance::where('user_id', $userId)
+                ->whereNull('clock_out_time')
+                ->orderBy('clock_in_time', 'desc')
+                ->first();
+
+            // Auto-close stale shifts that exceeded max configured shift hours.
+            if ($activeShift && AttendanceWindowService::isStaleShift($activeShift->clock_in_time, $now)) {
+                $autoClockOut = $activeShift->clock_in_time->copy()->addHours(AttendanceWindowService::maxShiftHours());
+                $notesPrefix = $activeShift->verification_notes ? $activeShift->verification_notes . ' | ' : '';
+
+                $activeShift->update([
+                    'clock_out_time' => $autoClockOut,
+                    'status' => 'temporary',
+                    'verification_notes' => $notesPrefix . 'Auto-closed stale shift after max shift duration',
+                ]);
+
+                $activeShift = null;
+            }
+
+            if ($activeShift) {
+                return $activeShift;
+            }
+
+            $todayStart = $now->copy()->startOfDay();
+            $todayEnd = $now->copy()->endOfDay();
+
+            // No active shift: consider today's latest attendance.
+            return Attendance::where('user_id', $userId)
+                ->whereBetween('clock_in_time', [$todayStart, $todayEnd])
                 ->orderBy('clock_in_time', 'desc')
                 ->first();
         });
@@ -84,23 +123,23 @@ class ClockInOutWidget extends Widget
         $this->clockOutTime = null;
 
         // No record found - ready to clock in
-        if (!$todayAttendance) {
+        if (!$attendanceState) {
             return;
         }
 
         // Set times
-        $this->clockInTime = $todayAttendance->clock_in_time->format('H:i');
-        $this->clockOutTime = $todayAttendance->clock_out_time ? $todayAttendance->clock_out_time->format('H:i') : null;
+        $this->clockInTime = $attendanceState->clock_in_time->format('H:i');
+        $this->clockOutTime = $attendanceState->clock_out_time ? $attendanceState->clock_out_time->format('H:i') : null;
 
         // Has NOT clocked out yet - currently working
-        if (!$todayAttendance->clock_out_time) {
+        if (!$attendanceState->clock_out_time) {
             $this->isClockedIn = true;
-            $this->isPendingApproval = ($todayAttendance->status === 'pending');
+            $this->isPendingApproval = ($attendanceState->status === 'pending');
             return;
         }
 
         // Has clocked out - check if completed or pending
-        if ($todayAttendance->status === 'completed') {
+        if (in_array($attendanceState->status, ['approved', 'completed'])) {
             $this->isCompleted = true;
         } else {
             $this->isClockedOut = true;
@@ -153,19 +192,12 @@ class ClockInOutWidget extends Widget
 
         $user = Auth::user();
 
-        // Safety net: block clock-in if user has 3+ infractions in current month
-        if (\App\Models\AttendanceInfraction::needsManagerEscalation($user->id)) {
-            $this->dispatch('notify', 
-                title: 'Account Blocked', 
-                message: 'Final warning reached. Please meet a manager to unblock your account.',
-                status: 'danger'
-            );
-            return;
-        }
-        
+        $todayStart = now()->startOfDay();
+        $todayEnd = now()->endOfDay();
+
         // Check if there's already a completed shift today
         $completedShift = Attendance::where('user_id', $user->id)
-            ->whereDate('clock_in_time', Carbon::today())
+            ->whereBetween('clock_in_time', [$todayStart, $todayEnd])
             ->whereNotNull('clock_out_time')
             ->first();
 
@@ -261,6 +293,7 @@ class ClockInOutWidget extends Widget
             $this->isPendingApproval = ($status === 'pending');
             $this->clockInTime = $attendance->clock_in_time->format('H:i');
             $this->clockOutTime = null;
+            $this->clearWidgetCaches();
 
             // Send notification based on status
             if ($status === 'approved') {
@@ -332,6 +365,7 @@ class ClockInOutWidget extends Widget
                 'clock_out_time' => $clockOutTime,
                 'status' => 'temporary',
             ]);
+            $this->clearWidgetCaches();
 
             // Update component state to reflect database changes
             $this->isClockedIn = false;
@@ -358,8 +392,11 @@ class ClockInOutWidget extends Widget
 
     public function workedHours()
     {
+        $todayStart = now()->startOfDay();
+        $todayEnd = now()->endOfDay();
+
         $attendance = Attendance::where('user_id', Auth::user()->id)
-            ->whereDate('clock_in_time', Carbon::today())
+            ->whereBetween('clock_in_time', [$todayStart, $todayEnd])
             ->orderBy('clock_in_time', 'desc')
             ->first();
         

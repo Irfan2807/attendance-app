@@ -22,7 +22,9 @@ class AttendanceVerificationService
         }
         // Check for IP passed from proxy
         elseif (!empty($request->server('HTTP_X_FORWARDED_FOR'))) {
-            $ip = $request->server('HTTP_X_FORWARDED_FOR');
+            // X-Forwarded-For may include a comma-separated chain. Use the client IP.
+            $forwardedFor = $request->server('HTTP_X_FORWARDED_FOR');
+            $ip = trim(explode(',', $forwardedFor)[0]);
         }
         // Check for remote IP
         else {

@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\AttendanceResource\Pages;
 use App\Models\Attendance;
+use App\Services\AttendanceMetricsService;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -12,8 +13,6 @@ use Filament\Tables\Table;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\Filter;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Auth;
-use Carbon\Carbon;
 
 class AttendanceResource extends Resource
 {

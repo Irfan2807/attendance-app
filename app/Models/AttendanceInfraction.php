@@ -38,9 +38,11 @@ class AttendanceInfraction extends Model
      */
     public static function getMonthlyWarningCount(int $userId): int
     {
+        $startOfMonth = Carbon::now()->startOfMonth();
+        $endOfMonth = Carbon::now()->endOfMonth();
+
         return static::where('user_id', $userId)
-            ->whereMonth('created_at', Carbon::now()->month)
-            ->whereYear('created_at', Carbon::now()->year)
+            ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
             ->count();
     }
 

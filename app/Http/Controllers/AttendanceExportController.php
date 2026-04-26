@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Attendance;
+use App\Services\AttendanceMetricsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -27,8 +28,11 @@ class AttendanceExportController extends Controller
 
         $callback = function () use ($attendances) {
             $handle = fopen('php://output', 'w');
-            fputcsv($handle, ['id','user','site_name','latitude','longitude','status','clock_in_time']);
+            fputcsv($handle, ['id','user','site_name','latitude','longitude','status','clock_in_time','clock_out_time','duration_minutes','overtime_minutes']);
             foreach ($attendances as $a) {
+                $durationMinutes = AttendanceMetricsService::workedMinutes($a);
+                $overtimeMinutes = AttendanceMetricsService::overtimeMinutes($a);
+
                 fputcsv($handle, [
                     $a->id,
                     $a->user?->name,
@@ -37,6 +41,9 @@ class AttendanceExportController extends Controller
                     $a->longitude,
                     $a->status,
                     $a->clock_in_time,
+                    $a->clock_out_time,
+                    $durationMinutes,
+                    $overtimeMinutes,
                 ]);
             }
             fclose($handle);

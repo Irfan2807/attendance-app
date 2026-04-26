@@ -12,12 +12,7 @@ export default defineConfig({
     ],
     build: {
         // Optimize build output
-        minify: 'terser',
-        terserOptions: {
-            compress: {
-                drop_console: true, // Remove console logs in production
-            },
-        },
+        minify: 'esbuild',
         // Enable CSS code splitting for better caching
         cssCodeSplit: true,
         // Increase chunk size warning threshold

@@ -3,7 +3,6 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Staff\Widgets\ClockInOutWidget;
-use App\Filament\Staff\Widgets\AttendanceWarningsWidget;
 use App\Filament\Staff\Widgets\ClockInDetailsWidget;
 use App\Http\Responses\LoginResponse;
 use Filament\Http\Middleware\Authenticate;
@@ -45,7 +44,6 @@ class StaffPanelProvider extends PanelProvider
             ->widgets([
                 ClockInOutWidget::class,
                 ClockInDetailsWidget::class,
-                AttendanceWarningsWidget::class,
             ])
             ->navigationGroups([
                 NavigationGroup::make('My Shift'),

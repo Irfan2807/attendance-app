@@ -35,13 +35,11 @@ class StaffAttendanceApprovalResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        // Show only pending and temporary entries, excluding the current manager's own records
-        // Managers can only approve other managers' clock-ins (peer approval), not their own
+        // Show pending and temporary entries from all staff, excluding the current manager's own records.
         return parent::getEloquentQuery()
             ->with(['user', 'approver'])
             ->whereIn('status', ['pending', 'temporary'])
             ->where('user_id', '!=', Auth::id())
-            ->whereHas('user', fn (Builder $q) => $q->where('role', 2))
             ->orderByDesc('created_at');
     }
 
