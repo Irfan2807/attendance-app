@@ -172,9 +172,8 @@ class StaffAttendanceOverviewResource extends Resource
                     ->colors([
                         'warning' => 'pending',
                         'info' => 'temporary',
-                        'success' => 'approved',
+                        'success' => fn ($state) => in_array($state, ['approved', 'completed']),
                         'danger' => 'rejected',
-                        'success' => 'completed',
                     ])
                     ->formatStateUsing(fn($state) => ucfirst($state)),
             ])
