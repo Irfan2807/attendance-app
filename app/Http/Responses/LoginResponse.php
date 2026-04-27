@@ -16,11 +16,11 @@ class LoginResponse implements LoginResponseContract
         $user = Auth::user();
 
         // Redirect based on user role
-        if ($user && in_array($user->role, [1, 2])) {
-            // Admin (1) or Manager (2) -> Admin Panel
+        if ($user && $user->role === 1) {
+            // Admin (1) -> Admin Panel
             return redirect()->intended('/admin');
         } else {
-            // Staff (3) -> Staff Panel
+            // Manager (2) or Staff (3) -> Staff Panel
             return redirect()->intended('/staff');
         }
     }
