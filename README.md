@@ -67,8 +67,8 @@ php artisan serve
 
 | Portal | URL | Who |
 |---|---|---|
-| **Admin Panel** | `/admin` | Managers & Administrators |
-| **Staff Portal** | `/staff` | Employees |
+| **Admin Panel** | `/admin` |  Administrators |
+| **Staff Portal** | `/staff` | Managers & Staffs |
 | **Public Site** | `/` | Landing page |
 
 ---
