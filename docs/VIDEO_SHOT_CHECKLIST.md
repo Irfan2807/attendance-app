@@ -1,4 +1,4 @@
-# Attendance App Video Shot Checklist
+# Tap and Track Video Shot Checklist
 
 ## Format
 - Length: about 2 minutes
