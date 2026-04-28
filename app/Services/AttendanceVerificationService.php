@@ -8,30 +8,13 @@ use Illuminate\Http\Request;
 class AttendanceVerificationService
 {
     /**
-     * Get client IP address from request
+     * Get client IP address from request.
+     * Uses Laravel's built-in ip() method which respects configured trusted proxies,
+     * preventing IP spoofing via client-controlled headers like X-Forwarded-For.
      */
     public static function getClientIp(Request $request = null): ?string
     {
-        if (!$request) {
-            return request()->ip();
-        }
-
-        // Check for IP from shared internet
-        if (!empty($request->server('HTTP_CLIENT_IP'))) {
-            $ip = $request->server('HTTP_CLIENT_IP');
-        }
-        // Check for IP passed from proxy
-        elseif (!empty($request->server('HTTP_X_FORWARDED_FOR'))) {
-            // X-Forwarded-For may include a comma-separated chain. Use the client IP.
-            $forwardedFor = $request->server('HTTP_X_FORWARDED_FOR');
-            $ip = trim(explode(',', $forwardedFor)[0]);
-        }
-        // Check for remote IP
-        else {
-            $ip = $request->server('REMOTE_ADDR');
-        }
-
-        return $ip;
+        return ($request ?? request())->ip();
     }
 
     /**
@@ -110,6 +93,7 @@ class AttendanceVerificationService
         }
 
         $recentAttendances = \App\Models\Attendance::where('clock_in_time', '>=', now()->subHours($timeWindowHours))
+            ->where('status', 'approved')
             ->whereNotNull('latitude')
             ->whereNotNull('longitude')
             ->get();

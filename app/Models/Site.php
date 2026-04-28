@@ -6,6 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class Site extends Model
 {
-    // This tells Laravel: "It's safe to save data to any column in this table"
-    protected $guarded = [];
+    protected $fillable = [
+        'name',
+        'latitude',
+        'longitude',
+        'ip_address',
+        'radius_meters',
+        'is_active',
+    ];
 }

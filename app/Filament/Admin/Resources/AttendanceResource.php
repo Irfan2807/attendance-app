@@ -8,6 +8,7 @@ use App\Services\AttendanceMetricsService;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
+use Illuminate\Support\Facades\Auth;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Tables\Filters\SelectFilter;
@@ -120,7 +121,11 @@ class AttendanceResource extends Resource
                 Tables\Actions\Action::make('approve')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
-                    ->action(fn (Attendance $record) => $record->update(['status' => 'approved']))
+                    ->action(fn (Attendance $record) => $record->update([
+                        'status' => 'approved',
+                        'approved_by' => Auth::id(),
+                        'approved_at' => now(),
+                    ]))
                     ->visible(fn (Attendance $record) => in_array($record->status, ['pending', 'temporary'])),
             ])
             ->bulkActions([

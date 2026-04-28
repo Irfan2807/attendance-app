@@ -63,6 +63,12 @@ class MileageLogResource extends Resource
                             ->searchable()
                             ->required()
                             ->reactive()
+                            ->afterStateHydrated(function ($state, Forms\Set $set) {
+                                if ($state) {
+                                    $vehicle = Vehicle::find($state);
+                                    $set('current_vehicle_mileage', $vehicle?->current_mileage ?? 0);
+                                }
+                            })
                             ->afterStateUpdated(function ($state, Forms\Set $set) {
                                 if ($state) {
                                     $vehicle = Vehicle::find($state);
@@ -79,7 +85,7 @@ class MileageLogResource extends Resource
                             ->label('Odometer Reading (KM)')
                             ->required()
                             ->numeric()
-                            ->minValue(0)
+                            ->minValue(fn ($get) => (int) ($get('current_vehicle_mileage') ?: 0))
                             ->suffix('KM')
                             ->helperText('Enter the current odometer reading from the vehicle'),
 
