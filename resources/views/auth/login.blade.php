@@ -30,18 +30,18 @@
         <form method="POST" action="{{ route('login.post') }}">
             @csrf
 
-            <!-- Phone or Email -->
+            <!-- Phone Number -->
             <div class="mb-4">
-                <label for="login" class="block text-gray-700 font-medium mb-2">Phone or Email</label>
+                <label for="login" class="block text-gray-700 font-medium mb-2">Phone Number</label>
                 <input 
-                    type="text" 
+                    type="tel" 
                     id="login" 
                     name="login" 
                     value="{{ old('login') }}"
                     required 
                     autofocus
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    placeholder="0123456789 or email@example.com"
+                    placeholder="0123456789"
                 >
                 @error('login')
                     <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
