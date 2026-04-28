@@ -3,9 +3,13 @@
 namespace App\Filament\Admin\Resources;
 
 use App\Filament\Admin\Resources\UserResource\Pages;
+use App\Models\Attendance;
 use App\Models\User;
+use App\Services\AttendanceMetricsService;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Infolists;
+use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -86,6 +90,96 @@ class UserResource extends Resource
             ]);
     }
 
+    public static function infolist(Infolist $infolist): Infolist
+    {
+        return $infolist->schema([
+            Infolists\Components\Section::make('Staff Details')
+                ->schema([
+                    Infolists\Components\TextEntry::make('name')
+                        ->label('Full Name'),
+
+                    Infolists\Components\TextEntry::make('phone')
+                        ->label('Phone Number'),
+
+                    Infolists\Components\TextEntry::make('role')
+                        ->label('Role')
+                        ->badge()
+                        ->formatStateUsing(fn (int $state): string => match ($state) {
+                            1 => 'Super Admin',
+                            2 => 'Manager',
+                            3 => 'Staff',
+                            default => 'Unknown',
+                        })
+                        ->color(fn (int $state): string => match ($state) {
+                            1 => 'danger',
+                            2 => 'warning',
+                            3 => 'success',
+                            default => 'gray',
+                        }),
+
+                    Infolists\Components\TextEntry::make('created_at')
+                        ->label('Member Since')
+                        ->dateTime('d M Y'),
+                ])->columns(2),
+
+            Infolists\Components\Section::make('Attendance Summary')
+                ->schema([
+                    Infolists\Components\TextEntry::make('total_sessions')
+                        ->label('Total Sessions')
+                        ->state(fn (User $record): int => $record->attendances()->count())
+                        ->badge()
+                        ->color('info'),
+
+                    Infolists\Components\TextEntry::make('total_hours_worked')
+                        ->label('Total Hours Worked')
+                        ->state(function (User $record): string {
+                            $minutes = $record->attendances()
+                                ->whereNotNull('clock_out_time')
+                                ->get()
+                                ->sum(fn (Attendance $a) => AttendanceMetricsService::workedMinutes($a));
+                            return AttendanceMetricsService::formatMinutes($minutes);
+                        })
+                        ->badge()
+                        ->color('success'),
+
+                    Infolists\Components\TextEntry::make('this_month_sessions')
+                        ->label('Sessions This Month')
+                        ->state(fn (User $record): int => $record->attendances()
+                            ->whereYear('clock_in_time', now()->year)
+                            ->whereMonth('clock_in_time', now()->month)
+                            ->count())
+                        ->badge()
+                        ->color('warning'),
+
+                    Infolists\Components\TextEntry::make('this_month_hours')
+                        ->label('Hours This Month')
+                        ->state(function (User $record): string {
+                            $minutes = $record->attendances()
+                                ->whereYear('clock_in_time', now()->year)
+                                ->whereMonth('clock_in_time', now()->month)
+                                ->whereNotNull('clock_out_time')
+                                ->get()
+                                ->sum(fn (Attendance $a) => AttendanceMetricsService::workedMinutes($a));
+                            return AttendanceMetricsService::formatMinutes($minutes);
+                        })
+                        ->badge()
+                        ->color('warning'),
+
+                    Infolists\Components\TextEntry::make('last_attendance')
+                        ->label('Last Attendance')
+                        ->state(fn (User $record): string => $record->attendances()
+                            ->latest('clock_in_time')
+                            ->value('clock_in_time') ?? 'No records')
+                        ->dateTime('d M Y h:i A'),
+
+                    Infolists\Components\TextEntry::make('incomplete_clock_out_count')
+                        ->label('Incomplete Clock-Outs')
+                        ->badge()
+                        ->color(fn ($state): string => ($state ?? 0) > 0 ? 'danger' : 'success'),
+                ])->columns(2),
+        ]);
+    }
+
     public static function table(Table $table): Table
     {
         return $table
@@ -112,7 +206,28 @@ class UserResource extends Resource
                         3 => 'success',
                         default => 'gray',
                     }),
+
+                Tables\Columns\TextColumn::make('total_sessions')
+                    ->label('Sessions')
+                    ->getStateUsing(fn (User $record): int => $record->attendances_count ?? $record->attendances()->count())
+                    ->badge()
+                    ->color('info'),
+
+                Tables\Columns\TextColumn::make('total_hours_worked')
+                    ->label('Total Hours')
+                    ->getStateUsing(function (User $record): string {
+                        $attendances = $record->relationLoaded('attendances')
+                            ? $record->attendances
+                            : $record->attendances()->whereNotNull('clock_out_time')->get();
+                        $minutes = $attendances
+                            ->whereNotNull('clock_out_time')
+                            ->sum(fn (Attendance $a) => AttendanceMetricsService::workedMinutes($a));
+                        return AttendanceMetricsService::formatMinutes($minutes);
+                    })
+                    ->badge()
+                    ->color('success'),
             ])
+            ->modifyQueryUsing(fn ($query) => $query->withCount('attendances')->with(['attendances' => fn ($q) => $q->whereNotNull('clock_out_time')]))
             ->filters([
                 Tables\Filters\SelectFilter::make('role')
                     ->options([
@@ -122,6 +237,8 @@ class UserResource extends Resource
                     ]),
             ])
             ->actions([
+                Tables\Actions\ViewAction::make(),
+
                 // 5. Edit Permission: Managers can only edit Staff
                 // usage of '?->' makes this null-safe
                 Tables\Actions\EditAction::make()
@@ -150,6 +267,7 @@ class UserResource extends Resource
         return [
             'index' => Pages\ListUsers::route('/'),
             'create' => Pages\CreateUser::route('/create'),
+            'view' => Pages\ViewUser::route('/{record}'),
             'edit' => Pages\EditUser::route('/{record}/edit'),
         ];
     }
