@@ -2,7 +2,6 @@
 
 namespace App\Providers\Filament;
 
-use App\Http\Responses\LoginResponse;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;

@@ -33,7 +33,6 @@ class User extends Authenticatable implements FilamentUser
 
     /** @var array<string,string> */
     protected $casts = [
-        'phone_verified_at' => 'datetime',
         'password' => 'hashed',
         'role' => 'integer',
     ];
