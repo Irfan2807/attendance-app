@@ -24,12 +24,23 @@ class StaffSiteResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return Auth::user() && in_array(Auth::user()->role, [1, 2]);
+        return Auth::user() && Auth::user()->role === 2;
     }
 
     public static function canCreate(): bool
     {
-        return Auth::user() && in_array(Auth::user()->role, [1, 2]);
+        // Site creation and editing is restricted to the admin panel (Super Admin only).
+        return false;
+    }
+
+    public static function canEdit($record): bool
+    {
+        return false;
+    }
+
+    public static function canDelete($record): bool
+    {
+        return false;
     }
 
     public static function form(Form $form): Form

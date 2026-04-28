@@ -9,6 +9,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 
@@ -24,12 +25,18 @@ class StaffUserResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return Auth::user() && in_array(Auth::user()->role, [1, 2]);
+        return Auth::user() && Auth::user()->role === 2;
     }
 
     public static function canCreate(): bool
     {
-        return Auth::user() && in_array(Auth::user()->role, [1, 2]);
+        return Auth::user() && Auth::user()->role === 2;
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        // Managers may only view and manage role-3 (Staff) users.
+        return parent::getEloquentQuery()->where('role', 3);
     }
 
     public static function form(Form $form): Form

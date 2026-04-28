@@ -187,6 +187,7 @@ class StaffAttendanceResource extends Resource
                 Tables\Filters\SelectFilter::make('status')
                     ->options([
                         'pending' => 'Pending',
+                        'temporary' => 'Awaiting Clock Out',
                         'approved' => 'Approved',
                         'rejected' => 'Rejected',
                         'completed' => 'Completed',

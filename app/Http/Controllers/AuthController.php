@@ -26,7 +26,7 @@ class AuthController extends Controller
      */
     public function login(Request $request)
     {
-        // Validate input - can be either email or phone
+        // Validate input
         $input = $request->validate([
             'login' => ['required', 'string'],
             'password' => ['required'],
@@ -34,21 +34,14 @@ class AuthController extends Controller
 
         $remember = $request->boolean('remember');
 
-        // Determine if input is phone or email
-        $isPhone = preg_match('/^01[0-9]{8,9}$/', $input['login']);
-        $isEmail = filter_var($input['login'], FILTER_VALIDATE_EMAIL);
-
-        // Try to authenticate with phone or email
-        if ($isPhone) {
-            $credentials = ['phone' => $input['login'], 'password' => $input['password']];
-        } elseif ($isEmail) {
-            // For backward compatibility with existing email data
-            $credentials = ['phone' => $input['login'], 'password' => $input['password']];
-        } else {
+        // Only phone number login is supported
+        if (!preg_match('/^01[0-9]{8,9}$/', $input['login'])) {
             throw ValidationException::withMessages([
-                'login' => ['Please enter a valid phone number or email address.'],
+                'login' => ['Please enter a valid Malaysian phone number (e.g. 0123456789).'],
             ]);
         }
+
+        $credentials = ['phone' => $input['login'], 'password' => $input['password']];
 
         if (Auth::attempt($credentials, $remember)) {
             $request->session()->regenerate();

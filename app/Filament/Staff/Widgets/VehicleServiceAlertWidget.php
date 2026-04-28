@@ -32,8 +32,10 @@ class VehicleServiceAlertWidget extends BaseWidget
             ->query(
                 Vehicle::query()
                     ->where('is_active', true)
-                    ->whereRaw('(next_service_mileage - current_mileage) <= 500')
-                    ->orWhereRaw('current_mileage >= next_service_mileage')
+                    ->where(function ($q) {
+                        $q->whereRaw('(next_service_mileage - current_mileage) <= 500')
+                          ->orWhereRaw('current_mileage >= next_service_mileage');
+                    })
             )
             ->columns([
                 Tables\Columns\TextColumn::make('numberplate')

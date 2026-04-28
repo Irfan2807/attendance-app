@@ -3,12 +3,14 @@
 namespace App\Filament\Staff\Widgets;
 
 use App\Models\Attendance;
+use App\Models\AttendanceInfraction;
 use App\Services\AttendanceWindowService;
 use App\Services\AttendanceVerificationService;
 use Carbon\Carbon;
 use Filament\Widgets\Widget;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Lazy;
 
@@ -73,21 +75,18 @@ class ClockInOutWidget extends Widget
 
     public function loadAttendanceState(): void
     {
-        // Cache attendance state for 2 minutes to reduce database queries
-        $cacheKey = 'attendance_state_' . Auth::user()->id;
-        
-        $attendanceState = Cache::remember($cacheKey, 120, function () {
-            $userId = Auth::user()->id;
-            $now = now();
+        $userId = Auth::user()->id;
+        $now = now();
+        $cacheKey = 'attendance_state_' . $userId;
 
-            // Check if there is an active shift first.
-            $activeShift = Attendance::where('user_id', $userId)
-                ->whereNull('clock_out_time')
-                ->orderBy('clock_in_time', 'desc')
-                ->first();
+        // Handle stale shift auto-close BEFORE the cache read so we never cache stale state.
+        $activeShift = Attendance::where('user_id', $userId)
+            ->whereNull('clock_out_time')
+            ->orderBy('clock_in_time', 'desc')
+            ->first();
 
-            // Auto-close stale shifts that exceeded max configured shift hours.
-            if ($activeShift && AttendanceWindowService::isStaleShift($activeShift->clock_in_time, $now)) {
+        if ($activeShift && AttendanceWindowService::isStaleShift($activeShift->clock_in_time, $now)) {
+            DB::transaction(function () use ($activeShift, $userId, $now) {
                 $autoClockOut = $activeShift->clock_in_time->copy()->addHours(AttendanceWindowService::maxShiftHours());
                 $notesPrefix = $activeShift->verification_notes ? $activeShift->verification_notes . ' | ' : '';
 
@@ -97,17 +96,37 @@ class ClockInOutWidget extends Widget
                     'verification_notes' => $notesPrefix . 'Auto-closed stale shift after max shift duration',
                 ]);
 
-                $activeShift = null;
-            }
+                // Record the infraction and increment the user's counter.
+                AttendanceInfraction::create([
+                    'user_id'             => $userId,
+                    'attendance_id'       => $activeShift->id,
+                    'infraction_type'     => 'forgot_clock_out',
+                    'auto_clock_out_time' => $autoClockOut,
+                    'notes'               => 'Shift auto-closed after exceeding maximum shift duration',
+                ]);
 
-            if ($activeShift) {
-                return $activeShift;
+                \App\Models\User::where('id', $userId)->increment('incomplete_clock_out_count');
+            });
+
+            // Invalidate the cache so the next read reflects the closed shift.
+            Cache::forget($cacheKey);
+        }
+
+        // Cache the attendance state to reduce database queries.
+        $attendanceState = Cache::remember($cacheKey, 120, function () use ($userId, $now) {
+            $active = Attendance::where('user_id', $userId)
+                ->whereNull('clock_out_time')
+                ->orderBy('clock_in_time', 'desc')
+                ->first();
+
+            if ($active) {
+                return $active;
             }
 
             $todayStart = $now->copy()->startOfDay();
-            $todayEnd = $now->copy()->endOfDay();
+            $todayEnd   = $now->copy()->endOfDay();
 
-            // No active shift: consider today's latest attendance.
+            // No active shift: return today's latest attendance if any.
             return Attendance::where('user_id', $userId)
                 ->whereBetween('clock_in_time', [$todayStart, $todayEnd])
                 ->orderBy('clock_in_time', 'desc')
@@ -275,16 +294,42 @@ class ClockInOutWidget extends Widget
                 }
             }
 
-            // Create attendance record
-            $attendance = Attendance::create([
-                'user_id' => $user->id,
-                'site_name' => $ipVerified?->name ?? $locationVerified?->name ?? 'Unknown Location',
-                'latitude' => $this->latitude ? (float)$this->latitude : 0,
-                'longitude' => $this->longitude ? (float)$this->longitude : 0,
-                'status' => $status,
-                'clock_in_time' => now(),
-                'verification_notes' => implode(' | ', $verificationNotes),
-            ]);
+            // Create the attendance record inside a transaction to prevent duplicate clock-ins
+            // from concurrent requests (race condition guard).
+            $alreadyClockedIn = false;
+            $attendance = DB::transaction(function () use (
+                $user, $status, $verificationNotes, $ipVerified, $locationVerified, &$alreadyClockedIn
+            ) {
+                // Re-check for an active shift with a write lock so concurrent requests are serialised.
+                $existingActive = Attendance::where('user_id', $user->id)
+                    ->whereNull('clock_out_time')
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($existingActive) {
+                    $alreadyClockedIn = true;
+                    return null;
+                }
+
+                return Attendance::create([
+                    'user_id'            => $user->id,
+                    'site_name'          => $ipVerified?->name ?? $locationVerified?->name ?? 'Unknown Location',
+                    'latitude'           => $this->latitude ? (float) $this->latitude : 0,
+                    'longitude'          => $this->longitude ? (float) $this->longitude : 0,
+                    'status'             => $status,
+                    'clock_in_time'      => now(),
+                    'verification_notes' => implode(' | ', $verificationNotes),
+                ]);
+            });
+
+            if ($alreadyClockedIn) {
+                $this->dispatch('notify',
+                    title: 'Already Clocked In',
+                    message: 'You are already clocked in. Please clock out first.',
+                    status: 'warning'
+                );
+                return;
+            }
 
             // Update component state to reflect database changes
             $this->isClockedIn = true;
@@ -358,19 +403,25 @@ class ClockInOutWidget extends Widget
                 return;
             }
 
-            // Update with clock out time
-            // Always mark as 'temporary' when clocking out - manager approval happens later
+            // Determine the new status: preserve approval if the shift was already approved.
+            $newStatus = $todayAttendance->status === 'approved' ? 'completed' : 'temporary';
+
             $clockOutTime = now();
             $todayAttendance->update([
                 'clock_out_time' => $clockOutTime,
-                'status' => 'temporary',
+                'status' => $newStatus,
             ]);
             $this->clearWidgetCaches();
 
-            // Update component state to reflect database changes
+            // Update component state to match the new database status.
             $this->isClockedIn = false;
-            $this->isClockedOut = false;
-            $this->isCompleted = true;
+            if ($newStatus === 'completed') {
+                $this->isClockedOut = false;
+                $this->isCompleted = true;
+            } else {
+                $this->isClockedOut = true;
+                $this->isCompleted = false;
+            }
             $this->clockOutTime = $clockOutTime->format('H:i');
             
             $this->dispatch('notify', 

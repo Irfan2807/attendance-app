@@ -31,15 +31,9 @@ class AppServiceProvider extends ServiceProvider
             URL::forceScheme('https');
         }
 
-        // Performance: Prevent lazy loading of relationships in production
+        // Prevent lazy loading in production (shouldBeStrict covers this and more)
         if (env('APP_ENV') === 'production') {
             Model::shouldBeStrict();
-        }
-
-        // Enable query optimization for database
-        if (env('APP_ENV') === 'production') {
-            // Prevent N+1 queries by warning in development
-            Model::preventLazyLoading(!env('APP_DEBUG', false));
         }
     }
 }

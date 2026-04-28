@@ -47,10 +47,10 @@ class StaffAttendanceOverviewResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        // Show all staff attendance (excluding manager's own records)
+        // Show only role-3 (Staff) attendance records, excluding the manager's own records.
         return parent::getEloquentQuery()
             ->with(['user', 'approver'])
-            ->where('user_id', '!=', Auth::id())
+            ->whereHas('user', fn ($q) => $q->where('role', 3))
             ->orderByDesc('clock_in_time');
     }
 
