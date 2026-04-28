@@ -2,7 +2,6 @@
 
 @section('content')
 <div style="padding:1rem;font-family:Inter, Arial, sans-serif;">
-    <h1 style="margin-bottom:0.25rem;">Tap and Track</h1>
     <h2>Attendance Report</h2>
     <p>Generated: {{ now() }}</p>
     <table border="1" cellpadding="6" cellspacing="0" style="width:100%;border-collapse:collapse;">

@@ -1,4 +1,4 @@
-# Attendance App Demo Script
+# Tap and Track Demo Script
 
 ## Goal
 Create a 2-minute product demo that shows the core workflow of the system:

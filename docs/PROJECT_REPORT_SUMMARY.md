@@ -1,7 +1,7 @@
-# Attendance App Project Report (Current State)
+# Tap and Track – Project Report (Current State)
 
 Date: 2026-04-14
-Project: attendance-app
+Project: Tap and Track
 Framework: Laravel 12 + Filament 3.2
 
 ## 1. Project Overview

@@ -1,4 +1,4 @@
-# Attendance App
+# Tap and Track
 
 [![Laravel](https://img.shields.io/badge/Laravel-12-red?logo=laravel)](https://laravel.com)
 [![PHP](https://img.shields.io/badge/PHP-8.3-blue?logo=php)](https://php.net)
