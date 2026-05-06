@@ -26,7 +26,6 @@ class UserFactory extends Factory
         return [
             'name' => fake()->name(),
             'phone' => fake()->unique()->numerify('01########'),
-            'phone_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
             'role' => 3, // Default to Staff
@@ -38,8 +37,6 @@ class UserFactory extends Factory
      */
     public function unverified(): static
     {
-        return $this->state(fn (array $attributes) => [
-            'phone_verified_at' => null,
-        ]);
+        return $this->state(fn (array $attributes) => []);
     }
 }
