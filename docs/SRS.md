@@ -414,9 +414,9 @@ All client-server communication uses HTTP/1.1 or HTTP/2 over TCP/IP. In producti
 | Use Case ID | UC-01 |
 | Title | Employee Clock In |
 | Primary Actor | Staff (Role 3) |
-| Preconditions | Employee is logged in. |
-| **Main Flow** | 1. Employee navigates to My Attendance. 2. Employee clicks Clock In. 3. System captures current timestamp and IP address. 4. System attempts to match IP to a registered active site. 5. If IP matches → status set to `approved`. If GPS matches → status set to `approved`. If group verification passes → status set to `approved`. Otherwise → status set to `pending` (awaiting manager approval). 6. System creates an attendance record. 7. System displays a success notification. |
-| **Alternate / Exception** | 4a. IP does not match: verification_notes records "IP mismatch"; status = `pending`. |
+| Preconditions | Employee is logged in. At least one active site exists. |
+| **Main Flow** | 1. Employee navigates to My Attendance. 2. Employee clicks Clock In. 3. System captures current timestamp and IP address (optionally GPS coordinates via Geolocation API). 4. System attempts to match IP to a registered active site. 5. If IP matches → status set to `approved`. If GPS matches site radius → status set to `approved`. If group verification passes (5+ approved clock-ins within 50 m in last 2 hours) → status set to `approved`. Otherwise → status set to `pending` (awaiting manager approval). 6. System creates an attendance record with `verification_notes` describing the outcome. 7. System displays a success notification. |
+| **Alternate / Exception** | 4a. IP does not match and GPS unavailable: `verification_notes` records mismatch details; status = `pending`. 5a. Employee already has an open (unclosed) shift: system blocks with a warning notification. |
 
 ### UC-02: Employee Clock Out
 
@@ -425,8 +425,8 @@ All client-server communication uses HTTP/1.1 or HTTP/2 over TCP/IP. In producti
 | Use Case ID | UC-02 |
 | Title | Employee Clock Out |
 | Primary Actor | Staff (Role 3) |
-| Preconditions | Employee has an active (open) attendance record. |
-| **Main Flow** | 1. Employee navigates to My Attendance. 2. Employee clicks Clock Out. 3. System records the `clock_out_time`. 4. If shift was `approved`, new status = `completed`. If shift was `pending`, new status = `temporary`. 5. System displays a success notification. |
+| Preconditions | Employee has an active (open) attendance record (no `clock_out_time`). |
+| **Main Flow** | 1. Employee navigates to My Attendance. 2. Employee clicks Clock Out. 3. System records `clock_out_time = now()`. 4. If prior shift status was `approved` → new status = `completed`. If prior shift status was `pending` → new status = `temporary`. 5. System displays a success notification. |
 | **Alternate / Exception** | 3a. No active record found: Clock Out button is disabled. |
 
 ### UC-03: Manager Approves Attendance
@@ -434,18 +434,96 @@ All client-server communication uses HTTP/1.1 or HTTP/2 over TCP/IP. In producti
 | Field | Detail |
 |---|---|
 | Use Case ID | UC-03 |
-| Title | Manager Approves Attendance |
+| Title | Manager Approves / Rejects Attendance |
 | Primary Actor | Manager (Role 2) |
 | Preconditions | One or more attendance records are in `pending` or `temporary` status. |
-| **Main Flow** | 1. Manager navigates to Clock-In Approvals. 2. Manager selects a pending/temporary record. 3. Manager reviews the details (clock-in time, site, verification notes). 4. Manager clicks Approve (or Reject with required notes). 5. System sets status = `approved` or `rejected`, records `approved_by`, `approved_at`, and `approval_notes`. |
-| **Alternate / Exception** | 4a. Manager tries to approve their own record: system blocks with an error. |
+| **Main Flow** | 1. Manager navigates to Clock-In Approvals. 2. Manager selects a pending/temporary record. 3. Manager reviews the details (clock-in time, site, verification notes). 4. Manager clicks **Approve** (with optional notes) or **Reject** (with required notes). 5. System sets status = `approved` or `rejected`, records `approved_by` (manager's `user_id`), `approved_at` (current timestamp), and `approval_notes`. |
+| **Alternate / Exception** | 4a. Manager attempts to approve or reject their own record: system blocks the action with an error notification and leaves the record unchanged. |
 
 ### UC-04: Safety Net Auto Clock-Out
 
+The system provides **two complementary mechanisms** that automatically close shifts exceeding the configured maximum duration (`ATTENDANCE_MAX_SHIFT_HOURS`, default 16 h).
+
+#### UC-04a: Dashboard-Triggered Auto Clock-Out (widget)
+
 | Field | Detail |
 |---|---|
-| Use Case ID | UC-04 |
-| Title | Safety Net Auto Clock-Out |
-| Primary Actor | System (triggered on dashboard load) |
-| Preconditions | An attendance record has been open for 16 or more hours (configurable). |
-| **Main Flow** | 1. User loads their dashboard (or any widget rehydration). 2. System finds open attendance records older than `ATTENDANCE_MAX_SHIFT_HOURS`. 3. System sets `clock_out_time = clock_in_time + max_shift_hours`. 4. System sets status = `temporary`. 5. System increments `incomplete_clock_out_count` for the user. 6. System creates an `AttendanceInfraction` record with `infraction_type = 'forgot_clock_out'`. |
+| Use Case ID | UC-04a |
+| Title | Dashboard-Triggered Safety Net Auto Clock-Out |
+| Primary Actor | System (triggered on every dashboard widget load / rehydration) |
+| Preconditions | The logged-in user has an open shift whose `clock_in_time` is ≥ `ATTENDANCE_MAX_SHIFT_HOURS` hours ago. |
+| **Main Flow** | 1. User loads their dashboard or a widget rehydrates. 2. System detects the open shift is stale using `AttendanceWindowService::isStaleShift()`. 3. System sets `clock_out_time = clock_in_time + max_shift_hours` (closes at the calculated limit, not at real time). 4. System sets status = `temporary`. 5. System creates an `AttendanceInfraction` record with `infraction_type = 'forgot_clock_out'`. 6. System increments the user's `incomplete_clock_out_count` by 1. |
+
+#### UC-04b: Artisan Command Auto Clock-Out (`attendance:auto-clock-out`)
+
+| Field | Detail |
+|---|---|
+| Use Case ID | UC-04b |
+| Title | Artisan Command Safety Net Auto Clock-Out |
+| Primary Actor | System (run via `php artisan attendance:auto-clock-out` or Laravel Scheduler) |
+| Preconditions | One or more open shifts have a `clock_in_time` ≥ `ATTENDANCE_MAX_SHIFT_HOURS` hours in the past. |
+| **Main Flow** | 1. Command queries all `Attendance` records where `clock_out_time IS NULL` and `clock_in_time ≤ now() − max_shift_hours`. 2. For each stale record, inside a DB transaction: 3. System sets `clock_out_time = now()` (actual execution time). 4. System sets status = `temporary`. 5. System creates an `AttendanceInfraction` with `infraction_type = 'auto_clock_out_{elapsed_hours}'` (e.g. `auto_clock_out_13`). 6. System increments the user's `incomplete_clock_out_count` by 1. |
+| **Alternate / Exception** | No stale shifts found: command exits with no changes. Already-closed shifts (non-null `clock_out_time`) are skipped. |
+
+**Warning escalation (applies to both UC-04a and UC-04b):**
+
+| `incomplete_clock_out_count` | Dashboard Widget Message |
+|---|---|
+| 1 | First warning |
+| 2 | Final warning |
+| ≥ 3 | Escalation alert – manager review needed |
+
+### UC-05: Manage Work Sites
+
+| Field | Detail |
+|---|---|
+| Use Case ID | UC-05 |
+| Title | Manage Work Sites |
+| Primary Actor | Administrator (Role 1) |
+| Preconditions | Admin is logged into the `/admin` panel. |
+| **Main Flow** | 1. Admin navigates to the Sites resource. 2. Admin creates a new site by providing: name, IP address, GPS latitude/longitude, radius (metres), and active flag. 3. System saves the site. Active sites are immediately used for clock-in IP/GPS verification. |
+| **Alternate / Exception** | 3a. Admin deactivates a site (`is_active = false`): site is excluded from all future clock-in verifications. Manager users can view sites but cannot create or edit them. |
+
+### UC-06: Register Company Vehicle
+
+| Field | Detail |
+|---|---|
+| Use Case ID | UC-06 |
+| Title | Register Company Vehicle |
+| Primary Actor | Manager (Role 2); Admin (Role 1) via Filament admin panel |
+| Preconditions | User is logged into the `/staff` panel with Manager role. |
+| **Main Flow** | 1. Manager navigates to **Fleet → Vehicles**. 2. Manager clicks **New Vehicle** and provides: number plate (unique), name/model, current mileage, next service mileage, active flag, and optional notes. 3. System saves the vehicle. Service status (OK / Due Soon / Overdue) is calculated from `next_service_mileage − current_mileage`. |
+| **Alternate / Exception** | 2a. Duplicate number plate: system rejects with a validation error. Staff (Role 3) can view but not create or edit vehicles. |
+
+### UC-07: Log Vehicle Mileage
+
+| Field | Detail |
+|---|---|
+| Use Case ID | UC-07 |
+| Title | Log Vehicle Mileage |
+| Primary Actor | Staff (Role 3), Manager (Role 2) |
+| Preconditions | At least one active vehicle exists. |
+| **Main Flow** | 1. User navigates to **Fleet → Mileage Logs**. 2. User selects a vehicle and enters the current odometer reading (`mileage_reading`) and optional trip notes. 3. System stores the log entry with `recorded_at = now()` and associates it with the user and vehicle. |
+| **Alternate / Exception** | – |
+
+### UC-08: Export Attendance CSV
+
+| Field | Detail |
+|---|---|
+| Use Case ID | UC-08 |
+| Title | Export Attendance Data as CSV |
+| Primary Actor | Manager (Role 2), Administrator (Role 1) |
+| Preconditions | User is authenticated. |
+| **Main Flow** | 1. User navigates to `/attendance/export` (with optional query-string filters). 2. System queries attendance records using lazy-collection processing. 3. System streams a CSV file containing the filtered records to the browser. |
+| **Alternate / Exception** | 2a. Staff (Role 3) are not granted access to this endpoint. |
+
+### UC-09: Create User Account
+
+| Field | Detail |
+|---|---|
+| Use Case ID | UC-09 |
+| Title | Create User Account |
+| Primary Actor | Administrator (Role 1) for all roles; Manager (Role 2) for Staff accounts |
+| Preconditions | Actor is logged into the appropriate panel. |
+| **Main Flow** | 1. Actor navigates to the Users resource. 2. Actor creates a new user by providing: full name, unique phone number, password, and role. 3. System hashes the password and saves the user. The user can immediately log in using their phone number and password. |
+| **Alternate / Exception** | 2a. Duplicate phone number: system rejects with a validation error. 2b. Manager attempts to create a Manager-or-above account: system blocks the action (role restricted). |
