@@ -3,6 +3,7 @@
 namespace App\Filament\Staff\Widgets;
 
 use App\Models\Attendance;
+use App\Services\AttendanceMetricsService;
 use Carbon\Carbon;
 use Filament\Widgets\Widget;
 use Illuminate\Support\Facades\Auth;
@@ -118,18 +119,7 @@ class ClockInDetailsWidget extends Widget
 
     public function formatMinutes(int $minutes): string
     {
-        $hours = intdiv($minutes, 60);
-        $remainingMinutes = $minutes % 60;
-
-        if ($hours <= 0) {
-            return $remainingMinutes . 'm';
-        }
-
-        if ($remainingMinutes === 0) {
-            return $hours . 'h';
-        }
-
-        return $hours . 'h ' . $remainingMinutes . 'm';
+        return AttendanceMetricsService::formatMinutes($minutes);
     }
 
     public function formatTime(?Carbon $time): string

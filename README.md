@@ -14,7 +14,7 @@ A modern employee attendance tracking system built with **Laravel 12** and **Fil
 | Feature | Description |
 |---|---|
 | 🕐 **Employee Clock In/Out** | Real-time attendance tracking with location verification |
-| 🛡️ **Safety Net System** | Auto clock-out after 10 hours with 3-strike warning escalation |
+| 🛡️ **Safety Net System** | Auto clock-out after 16 hours with 3-strike warning escalation |
 | ✅ **Manager Approvals** | Review and approve/reject employee attendance records |
 | 🏢 **Site Management** | Assign employees to multiple work sites with IP verification |
 | 🚗 **Vehicle Tracking** | Log company vehicle usage and mileage |
@@ -88,7 +88,7 @@ php artisan serve
 
 ## Safety & Security Features
 
-- **Auto Clock-Out** – Employees are automatically clocked out after 10 hours
+- **Auto Clock-Out** – Employees are automatically clocked out after 16 hours (configurable via `ATTENDANCE_MAX_SHIFT_HOURS`)
 - **Warning System** – 3-strike escalation: warning → final warning → manager review
 - **Location Verification** – IP-based site verification on clock-in
 - **Manager Approval** – All critical attendance changes require approval
@@ -101,7 +101,7 @@ php artisan serve
 - Lazy-loaded Filament widgets for faster dashboard loads
 - 5–10 minute cache on statistics queries
 - Chunked CSV exports with lazy collection processing
-- Minified assets with Terser
+- Minified assets with esbuild
 
 ---
 
