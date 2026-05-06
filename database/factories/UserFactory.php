@@ -26,20 +26,10 @@ class UserFactory extends Factory
         return [
             'name' => fake()->name(),
             'phone' => fake()->unique()->numerify('01########'),
-            'phone_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
             'role' => 3, // Default to Staff
         ];
     }
 
-    /**
-     * Indicate that the model's phone number should be unverified.
-     */
-    public function unverified(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'phone_verified_at' => null,
-        ]);
-    }
 }
