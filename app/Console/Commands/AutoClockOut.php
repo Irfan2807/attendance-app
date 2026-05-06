@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\Attendance;
 use App\Models\AttendanceInfraction;
 use App\Models\User;
+use App\Services\AttendanceWindowService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -16,7 +17,7 @@ class AutoClockOut extends Command
 
     public function handle(): void
     {
-        $thresholdHours = 10;
+        $thresholdHours = AttendanceWindowService::maxShiftHours();
         $now = now();
 
         $longRunning = Attendance::whereNull('clock_out_time')

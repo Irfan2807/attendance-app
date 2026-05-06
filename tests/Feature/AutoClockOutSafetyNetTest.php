@@ -13,6 +13,14 @@ class AutoClockOutSafetyNetTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // Tests use 10–13-hour shifts; pin the threshold to 10 so the command
+        // triggers at the same point the test data expects.
+        config()->set('attendance.max_shift_hours', 10);
+    }
+
     // -------------------------------------------------------------------------
     // Shifts that ARE within threshold — must not be touched
     // -------------------------------------------------------------------------
