@@ -107,14 +107,8 @@ class StaffSiteResource extends Resource
                     ->color('primary')
                     ->url(fn($record) => "https://www.google.com/maps?q={$record->latitude},{$record->longitude}")
                     ->openUrlInNewTab(),
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
-            ]);
+            ->bulkActions([]);
     }
 
     public static function getRelations(): array
@@ -128,8 +122,6 @@ class StaffSiteResource extends Resource
     {
         return [
             'index' => Pages\ListSites::route('/'),
-            'create' => Pages\CreateSite::route('/create'),
-            'edit' => Pages\EditSite::route('/{record}/edit'),
         ];
     }
 }

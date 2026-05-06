@@ -6,18 +6,10 @@ use Carbon\Carbon;
 
 class AttendanceWindowService
 {
-    public static function normalizeShiftType(?string $shiftType = null): string
-    {
-        return in_array($shiftType, ['night'], true) ? 'night' : 'day';
-    }
-
-    public static function operationalDayStart(?Carbon $reference = null, ?string $shiftType = null): Carbon
+    public static function operationalDayStart(?Carbon $reference = null): Carbon
     {
         $reference = $reference ? $reference->copy() : now();
-        $shiftType = self::normalizeShiftType($shiftType);
-        $cutoffHour = $shiftType === 'night'
-            ? (int) config('attendance.night_shift_starts_at', 17)
-            : (int) config('attendance.day_shift_starts_at', 8);
+        $cutoffHour = (int) config('attendance.day_shift_starts_at', 8);
 
         $start = $reference->copy()->startOfDay()->addHours($cutoffHour);
 
@@ -28,14 +20,14 @@ class AttendanceWindowService
         return $start;
     }
 
-    public static function operationalDayEnd(?Carbon $reference = null, ?string $shiftType = null): Carbon
+    public static function operationalDayEnd(?Carbon $reference = null): Carbon
     {
-        return self::operationalDayStart($reference, $shiftType)->copy()->addDay();
+        return self::operationalDayStart($reference)->copy()->addDay();
     }
 
-    public static function operationalDayRange(?Carbon $reference = null, ?string $shiftType = null): array
+    public static function operationalDayRange(?Carbon $reference = null): array
     {
-        $start = self::operationalDayStart($reference, $shiftType);
+        $start = self::operationalDayStart($reference);
 
         return [$start, $start->copy()->addDay()];
     }
