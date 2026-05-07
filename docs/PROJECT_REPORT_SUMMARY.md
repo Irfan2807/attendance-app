@@ -1,6 +1,6 @@
 # Tap and Track – Project Report (Current State)
 
-Date: 2026-04-14
+Date: 2026-05-07
 Project: Tap and Track
 Framework: Laravel 12 + Filament 3.2
 
@@ -22,23 +22,23 @@ This project is an employee attendance and workforce operations platform with ro
 - Added contact map embed from legacy site.
 - Fixed manager approval query so pending/temporary records include staff records (not manager-only).
 - Fixed widget refresh cache-key mismatch.
-- Improved IP extraction for proxied environments (X-Forwarded-For first IP).
+- Standardized client IP detection through Laravel request IP handling and trusted proxy support.
 - Restricted manager analytics widget visibility to managers only.
 - Implemented operational-day attendance logic for flexible/night shifts via AttendanceWindowService.
 
 ## 4. Attendance Logic (Important)
 The system now supports flexible shift behavior better than strict calendar-day logic:
-- Operational day start hour is configurable (default 05:00).
+- Operational day start hour is configurable (default 08:00).
 - Overnight work is grouped under one operational attendance day.
 - Stale open shifts are auto-closed by max-shift threshold (default 16 hours).
 - Staff and manager widgets now use operational-day windows for daily metrics.
 
 Config:
-- ATTENDANCE_DAY_START_HOUR=5
+- ATTENDANCE_DAY_START_HOUR=8
 - ATTENDANCE_MAX_SHIFT_HOURS=16
 
 ## 5. Known Gaps / Risks
-- Automated tests are currently missing (no test suite coverage for attendance flows).
+- Feature test coverage exists for attendance status transitions, approval flows, shift logic, safety-net auto clock-out, and vehicle service status.
 - Some analytics are still basic; trend charts and policy scoring can be expanded.
 - Attendance policy engine is not yet fully configurable per role/site/shift template.
 
@@ -47,7 +47,7 @@ Config:
 2) Add policy engine (late, early leave, overtime, grace period).
 3) Add analytics dashboard (attendance trends, overtime, approval SLA).
 4) Add scheduled jobs for compliance automation and stale-shift handling audit logs.
-5) Add feature tests for end-to-end scenarios.
+5) Expand integration and end-to-end test depth beyond current feature test coverage.
 
 ## 7. Validation Snapshot
 - Public routes load and styled assets compile with Vite build.
@@ -71,4 +71,4 @@ Config:
 - vite.config.js
 
 ## 9. Conclusion
-The project is in a strong state for FYP demonstration, with meaningful real-world improvements already implemented. The highest-impact next step is to formalize attendance policy rules and analytics dashboards, then add automated tests for confidence and reproducibility.
+The project is in a strong state for FYP demonstration, with meaningful real-world improvements and baseline feature-test coverage already in place. The highest-impact next step is to formalize attendance policy rules, deepen analytics dashboards, and broaden integration-level testing.

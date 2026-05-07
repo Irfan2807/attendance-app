@@ -73,7 +73,7 @@ Tap and Track is a standalone web application accessed via a browser. It does no
 
 | Component | Specification |
 |---|---|
-| Backend Framework | Laravel 12 (PHP 8.3) |
+| Backend Framework | Laravel 12 (PHP 8.2+) |
 | Admin UI Framework | Filament 3.2 |
 | Frontend Build | Vite 7, Tailwind CSS 4 |
 | Database | SQLite (default) |
@@ -107,17 +107,16 @@ Tap and Track is a standalone web application accessed via a browser. It does no
 
 | Feature | Admin | Manager | Staff |
 |---|---|---|---|
-| Clock In / Out | – | – | ✓ |
+| Clock In / Out | – | ✓ | ✓ |
 | View Own Attendance | ✓ | ✓ | ✓ |
 | View All Attendance | ✓ | ✓ (staff only) | – |
 | Approve / Reject Attendance | ✓ | ✓ | – |
 | Create Staff Users | ✓ | ✓ | – |
 | Create Manager Users | ✓ | – | – |
 | Manage Sites | ✓ | View only | – |
-| Manage Vehicles | ✓ | ✓ | View only |
-| Log Mileage | ✓ | ✓ | ✓ |
+| Manage Vehicles | – | ✓ | View only |
+| Log Mileage | – | ✓ | ✓ |
 | Export CSV | ✓ | ✓ | – |
-| Reset Warning Counter | ✓ | – | – |
 
 ---
 
@@ -136,10 +135,10 @@ Tap and Track is a standalone web application accessed via a browser. It does no
 
 | ID | Requirement |
 |---|---|
-| FR-05 | The system shall allow Staff to record a clock-in event with a timestamp and associated site. |
-| FR-06 | The system shall allow Staff to record a clock-out event for their active shift. |
+| FR-05 | The system shall allow Managers and Staff to record a clock-in event with a timestamp and associated site. |
+| FR-06 | The system shall allow Managers and Staff to record a clock-out event for their active shift. |
 | FR-07 | The system shall prevent a second clock-in if an active (unclosed) attendance record exists. |
-| FR-08 | The system shall record the IP address at clock-in for verification purposes. |
+| FR-08 | The system shall evaluate the client IP address at clock-in for verification and write verification outcomes to `verification_notes`. |
 | FR-09 | Attendance records shall store: `user_id`, `site_name`, `latitude`, `longitude`, `clock_in_time`, `clock_out_time`, `status`, `verification_notes`, `approval_notes`, `approved_by`, `approved_at`. |
 | FR-10 | The system shall support the following attendance statuses: `pending`, `approved`, `rejected`, `temporary`, `completed`. |
 
@@ -157,7 +156,7 @@ Tap and Track is a standalone web application accessed via a browser. It does no
 
 | ID | Requirement |
 |---|---|
-| FR-11 | Managers shall be able to view all `pending` and `temporary` attendance records for staff under their supervision. |
+| FR-11 | Managers shall be able to view all `pending` and `temporary` attendance records except their own records. |
 | FR-12 | Managers shall be able to approve or reject an attendance record with optional/required notes. |
 | FR-13 | The system shall record the approver's `user_id` (`approved_by`), approval timestamp (`approved_at`), and optional notes (`approval_notes`) on each reviewed record. |
 
@@ -192,7 +191,7 @@ Tap and Track is a standalone web application accessed via a browser. It does no
 | ID | Requirement |
 |---|---|
 | FR-25 | The dashboard shall display attendance statistics widgets. |
-| FR-26 | Managers and Admins shall be able to export filtered attendance data as a CSV file via the `/attendance/export` route. |
+| FR-26 | Managers and Admins shall be able to export attendance data as a CSV file via the `/attendance/export` route. |
 
 ---
 
@@ -250,7 +249,7 @@ Tap and Track follows the MVC (Model-View-Controller) architecture enforced by t
 | Layer | Technology | Role |
 |---|---|---|
 | Presentation | Filament 3.2 + Tailwind CSS 4 | Renders UI panels and widgets |
-| Application | Laravel 12 (PHP 8.3) | Business logic, routing |
+| Application | Laravel 12 (PHP 8.2+) | Business logic, routing |
 | Data Access | Eloquent ORM | Database abstraction and relationships |
 | Database | SQLite | Persistent data storage |
 | Caching | Laravel File Cache | Query result caching |
@@ -392,7 +391,7 @@ All client-server communication uses HTTP/1.1 or HTTP/2 over TCP/IP. In producti
 ## 9. Constraints & Assumptions
 
 ### 9.1 Constraints
-- The application requires PHP 8.3 or higher.
+- The application requires PHP 8.2 or higher.
 - The default database is SQLite; switching to MySQL/PostgreSQL requires updating the `.env` `DATABASE_CONNECTION` variable and re-running migrations.
 - Clock-in IP verification requires that each work site has a known, static IP address.
 - No email functionality is included in the initial version; notifications are in-app only.
@@ -490,7 +489,7 @@ The system provides **two complementary mechanisms** that automatically close sh
 |---|---|
 | Use Case ID | UC-06 |
 | Title | Register Company Vehicle |
-| Primary Actor | Manager (Role 2); Admin (Role 1) via Filament admin panel |
+| Primary Actor | Manager (Role 2) |
 | Preconditions | User is logged into the `/staff` panel with Manager role. |
 | **Main Flow** | 1. Manager navigates to **Fleet → Vehicles**. 2. Manager clicks **New Vehicle** and provides: number plate (unique), name/model, current mileage, next service mileage, active flag, and optional notes. 3. System saves the vehicle. Service status (OK / Due Soon / Overdue) is calculated from `next_service_mileage − current_mileage`. |
 | **Alternate / Exception** | 2a. Duplicate number plate: system rejects with a validation error. Staff (Role 3) can view but not create or edit vehicles. |
@@ -514,7 +513,7 @@ The system provides **two complementary mechanisms** that automatically close sh
 | Title | Export Attendance Data as CSV |
 | Primary Actor | Manager (Role 2), Administrator (Role 1) |
 | Preconditions | User is authenticated. |
-| **Main Flow** | 1. User navigates to `/attendance/export` (with optional query-string filters). 2. System queries attendance records using lazy-collection processing. 3. System streams a CSV file containing the filtered records to the browser. |
+| **Main Flow** | 1. User navigates to `/attendance/export`. 2. System queries attendance records using lazy-collection processing. 3. System streams a CSV file containing attendance records (ordered by latest clock-in first) to the browser. |
 | **Alternate / Exception** | 2a. Staff (Role 3) are not granted access to this endpoint. |
 
 ### UC-09: Create User Account

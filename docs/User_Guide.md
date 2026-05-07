@@ -88,9 +88,13 @@ The Staff dashboard shows a summary of your attendance activity, including:
 1. On your dashboard, locate the **Clock In** widget.
 2. Click **Get Location** to capture your GPS coordinates (optional but recommended).
 3. Click **Clock In**.
-4. The system will verify your IP address and/or GPS location against registered sites.
+4. The system verifies your clock-in using this order:
+   - IP match against active site IPs
+   - GPS radius match (if location is provided)
+   - Group verification (5+ approved nearby clock-ins within 50m, last 2 hours)
    - If verification succeeds → clock-in is **Approved** immediately.
    - If verification fails → clock-in is set to **Pending** and requires manager approval.
+   - If you already completed one shift today, a new shift is always set to **Pending** for manager review.
 5. A notification will confirm the clock-in and indicate the verification result.
 
 *Important: You must be connected to the site's designated network for IP verification to succeed. Clock-ins from unrecognised IP addresses will be flagged as pending.*
@@ -165,9 +169,10 @@ Go to **Office Locations** (under **Company**) to view the list of registered wo
 *Note: Only Administrators can add or edit site details.*
 
 ### 4.5 Exporting Attendance Data
-From the **Staff Attendance Overview** page, click the **Export** button (top right) to download a CSV file of the currently filtered attendance records.
-
-You can also access the export directly at `/attendance/export` and the print view at `/attendance/print`.
+Managers can export attendance data by opening `/attendance/export`.  
+Print view is available at `/attendance/print`.
+ 
+*Note: the current CSV export endpoint returns all attendance records (newest first), not the active table filters.*
 
 ### 4.6 Vehicle Service Alerts
 Managers see a **Vehicle Service Alerts** widget on their dashboard, which lists vehicles that are due for service soon (within 500 km) or overdue. Click **Update Service** on a vehicle to set the next service mileage.
@@ -189,7 +194,6 @@ Navigate to **Staff Management** in the sidebar to create, edit, or deactivate u
 | Phone | Mobile number used for login (must start with `01`, 10–11 digits) |
 | Password | Set initial password (hashed automatically) |
 | Role | 1 = Super Admin, 2 = Manager, 3 = Staff |
-| Incomplete Clock-Out Count | System-managed warning counter (can be reset to 0 here) |
 
 ### 5.2 Site Management
 Navigate to **Sites** to manage work locations.
@@ -253,22 +257,18 @@ If an employee has not clocked out after **16 hours** (configurable via `ATTENDA
 
 ### 7.2 Warning Escalation
 
-| `incomplete_clock_out_count` | Dashboard Warning Widget |
+| This Month Warnings | Dashboard Warning Widget |
 |---|---|
 | 0 | ✓ Good Standing |
 | 1 | First warning – visible on dashboard |
 | 2 | Final warning – visible on dashboard |
 | 3+ | Escalated – manager review needed |
 
-*Note: The count tracks all-time missed clock-outs. The monthly warning count shown in the widget is a separate count of infractions created in the current calendar month.*
+*Note: `incomplete_clock_out_count` is still tracked as all-time infractions, but escalation in the warning widget is based on monthly warnings.*
 
 ### 7.3 Resetting Warnings
-Only an **Administrator** can reset an employee's warning counter.
-
-1. Go to **Admin Panel > Staff Management**.
-2. Open the employee record and click **Edit**.
-3. Set the **Incomplete Clock-Out Count** field back to `0`.
-4. Click **Save**.
+The warning counter is system-managed in the current UI and is not directly editable from Filament forms.
+If a reset is required, it must be done manually at database level by an administrator with backend access.
 
 ---
 
