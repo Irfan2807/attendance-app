@@ -102,4 +102,49 @@ class AttendanceExportFilterTest extends TestCase
         $this->assertStringNotContainsString('Dana', $csv);
         $this->assertStringNotContainsString('Site Beta', $csv);
     }
+
+    public function test_csv_export_orders_rows_by_latest_clock_in_time(): void
+    {
+        $manager = User::factory()->create(['role' => 2]);
+        $older = User::factory()->create(['role' => 3, 'name' => 'Older Shift']);
+        $newer = User::factory()->create(['role' => 3, 'name' => 'Newer Shift']);
+
+        Attendance::create([
+            'user_id' => $older->id,
+            'site_name' => 'HQ',
+            'latitude' => 3.0,
+            'longitude' => 101.0,
+            'status' => 'approved',
+            'clock_in_time' => Carbon::parse('2026-05-07 08:00:00'),
+        ]);
+
+        Attendance::create([
+            'user_id' => $newer->id,
+            'site_name' => 'HQ',
+            'latitude' => 3.0,
+            'longitude' => 101.0,
+            'status' => 'approved',
+            'clock_in_time' => Carbon::parse('2026-05-07 10:00:00'),
+        ]);
+
+        $response = $this->actingAs($manager)->get(route('attendance.export'));
+        $response->assertOk();
+
+        $csv = $response->streamedContent();
+        $newerPos = strpos($csv, 'Newer Shift');
+        $olderPos = strpos($csv, 'Older Shift');
+
+        $this->assertNotFalse($newerPos);
+        $this->assertNotFalse($olderPos);
+        $this->assertLessThan($olderPos, $newerPos);
+    }
+
+    public function test_csv_export_is_forbidden_for_staff_role(): void
+    {
+        $staff = User::factory()->create(['role' => 3]);
+
+        $this->actingAs($staff)
+            ->get(route('attendance.export'))
+            ->assertForbidden();
+    }
 }

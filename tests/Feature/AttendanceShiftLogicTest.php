@@ -49,6 +49,16 @@ class AttendanceShiftLogicTest extends TestCase
         $this->assertTrue(AttendanceWindowService::isStaleShift($clockInTime, $reference));
     }
 
+    public function test_it_does_not_mark_shift_as_stale_below_max_hours(): void
+    {
+        config()->set('attendance.max_shift_hours', 10);
+
+        $clockInTime = Carbon::create(2026, 4, 15, 9, 1, 0);
+        $reference = Carbon::create(2026, 4, 15, 19, 0, 0);
+
+        $this->assertFalse(AttendanceWindowService::isStaleShift($clockInTime, $reference));
+    }
+
     public function test_manager_widget_is_hidden_from_staff(): void
     {
         /** @var User $staff */
