@@ -41,9 +41,10 @@ class RoleAccessRoutingTest extends TestCase
 
     public function test_login_redirects_by_role(): void
     {
-        $admin = User::factory()->create(['role' => self::ROLE_ADMIN, 'phone' => '01111111111', 'password' => Hash::make(self::TEST_PASSWORD)]);
-        $manager = User::factory()->create(['role' => self::ROLE_MANAGER, 'phone' => '01111111112', 'password' => Hash::make(self::TEST_PASSWORD)]);
-        $staff = User::factory()->create(['role' => self::ROLE_STAFF, 'phone' => '01111111113', 'password' => Hash::make(self::TEST_PASSWORD)]);
+        $hashedPassword = Hash::make(self::TEST_PASSWORD);
+        $admin = User::factory()->create(['role' => self::ROLE_ADMIN, 'phone' => '01111111111', 'password' => $hashedPassword]);
+        $manager = User::factory()->create(['role' => self::ROLE_MANAGER, 'phone' => '01111111112', 'password' => $hashedPassword]);
+        $staff = User::factory()->create(['role' => self::ROLE_STAFF, 'phone' => '01111111113', 'password' => $hashedPassword]);
 
         $this->post(route('login.post'), [
             'login' => $admin->phone,
