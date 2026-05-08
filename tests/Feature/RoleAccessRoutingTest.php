@@ -17,6 +17,9 @@ class RoleAccessRoutingTest extends TestCase
     private const ROLE_MANAGER = 2;
     private const ROLE_STAFF = 3;
     private const TEST_PASSWORD = 'password';
+    private const ADMIN_PHONE = '01111111111';
+    private const MANAGER_PHONE = '01111111112';
+    private const STAFF_PHONE = '01111111113';
 
     public function test_panel_access_follows_role_rules(): void
     {
@@ -42,9 +45,9 @@ class RoleAccessRoutingTest extends TestCase
     public function test_login_redirects_by_role(): void
     {
         $hashedPassword = Hash::make(self::TEST_PASSWORD);
-        $admin = User::factory()->create(['role' => self::ROLE_ADMIN, 'phone' => '01111111111', 'password' => $hashedPassword]);
-        $manager = User::factory()->create(['role' => self::ROLE_MANAGER, 'phone' => '01111111112', 'password' => $hashedPassword]);
-        $staff = User::factory()->create(['role' => self::ROLE_STAFF, 'phone' => '01111111113', 'password' => $hashedPassword]);
+        $admin = User::factory()->create(['role' => self::ROLE_ADMIN, 'phone' => self::ADMIN_PHONE, 'password' => $hashedPassword]);
+        $manager = User::factory()->create(['role' => self::ROLE_MANAGER, 'phone' => self::MANAGER_PHONE, 'password' => $hashedPassword]);
+        $staff = User::factory()->create(['role' => self::ROLE_STAFF, 'phone' => self::STAFF_PHONE, 'password' => $hashedPassword]);
 
         $this->loginAndAssertRedirect($admin->phone, '/admin');
         $this->loginAndAssertRedirect($manager->phone, '/staff');
