@@ -2,13 +2,16 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Admin\Widgets\AdminApprovalAnalyticsWidget;
+use App\Filament\Admin\Widgets\AdminAttendanceKpiWidget;
+use App\Filament\Admin\Widgets\AdminAttendanceTrendsWidget;
+use App\Filament\Admin\Widgets\AdminDataQualityAnalyticsWidget;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
-use Filament\Support\Colors\Color;
 use Filament\Widgets;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -26,11 +29,11 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-            
+
             // --- 🎨 BRANDING START ---
             ->brandName('Tumpat Solutions')
             ->brandLogo(asset('images/logo.png')) // Uses your uploaded logo
-            ->brandLogoHeight('3rem') 
+            ->brandLogoHeight('3rem')
             ->favicon(asset('images/logo.png'))
             ->colors([
                 'primary' => '#F27E26', // Your Brand Orange
@@ -44,6 +47,10 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Admin/Widgets'), for: 'App\\Filament\\Admin\\Widgets')
             ->widgets([
+                AdminAttendanceKpiWidget::class,
+                AdminAttendanceTrendsWidget::class,
+                AdminApprovalAnalyticsWidget::class,
+                AdminDataQualityAnalyticsWidget::class,
                 Widgets\AccountWidget::class,
             ])
             ->middleware([

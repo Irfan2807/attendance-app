@@ -4,6 +4,7 @@ namespace App\Filament\Staff\Widgets;
 
 use App\Models\Attendance;
 use App\Services\AttendanceMetricsService;
+use App\Services\AttendanceWindowService;
 use Carbon\Carbon;
 use Filament\Widgets\Widget;
 use Illuminate\Support\Facades\Auth;
@@ -18,7 +19,7 @@ class ClockInDetailsWidget extends Widget
 
     protected static ?int $sort = 1;
 
-    protected int | string | array $columnSpan = [
+    protected int|string|array $columnSpan = [
         'default' => 1,
         'lg' => 1,
     ];
@@ -39,13 +40,12 @@ class ClockInDetailsWidget extends Widget
     {
         $user = Auth::user();
         $now = Carbon::now();
-        $todayStart = $now->copy()->startOfDay();
-        $todayEnd = $now->copy()->endOfDay();
+        [$todayStart, $todayEnd] = AttendanceWindowService::operationalDayRange($now);
         $weekStart = $now->copy()->startOfWeek();
         $weekEnd = $now->copy()->endOfWeek();
         $monthStart = $now->copy()->startOfMonth();
 
-        $this->stats = Cache::remember('clock_in_details_stats_' . $user->id, 60, function () use ($user, $now, $todayStart, $todayEnd, $weekStart, $weekEnd, $monthStart) {
+        $this->stats = Cache::remember('clock_in_details_stats_'.$user->id, 60, function () use ($user, $now, $todayStart, $todayEnd, $weekStart, $weekEnd, $monthStart) {
             $baseQuery = Attendance::where('user_id', $user->id);
             $nowString = $now->toDateTimeString();
             $dbDriver = DB::connection()->getDriverName();
@@ -55,7 +55,7 @@ class ClockInDetailsWidget extends Widget
                     return (int) $query
                         ->get(['clock_in_time', 'clock_out_time'])
                         ->sum(function (Attendance $attendance) use ($nowRef): int {
-                            if (!$attendance->clock_in_time) {
+                            if (! $attendance->clock_in_time) {
                                 return 0;
                             }
 
