@@ -19,9 +19,9 @@ class RoleAccessRoutingTest extends TestCase
 
     public function test_panel_access_follows_role_rules(): void
     {
-        $admin = User::factory()->make(['role' => self::ROLE_ADMIN]);
-        $manager = User::factory()->make(['role' => self::ROLE_MANAGER]);
-        $staff = User::factory()->make(['role' => self::ROLE_STAFF]);
+        $admin = User::factory()->create(['role' => self::ROLE_ADMIN]);
+        $manager = User::factory()->create(['role' => self::ROLE_MANAGER]);
+        $staff = User::factory()->create(['role' => self::ROLE_STAFF]);
 
         $adminPanel = $this->panelMock('admin');
         $staffPanel = $this->panelMock('staff');
