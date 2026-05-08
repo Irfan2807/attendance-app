@@ -12,6 +12,9 @@ class AttendanceExportFilterTest extends TestCase
 {
     use RefreshDatabase;
 
+    private const ROLE_MANAGER = 2;
+    private const ROLE_STAFF = 3;
+
     public function test_csv_export_applies_status_and_date_filters(): void
     {
         Carbon::setTestNow(Carbon::create(2026, 5, 8, 10, 0, 0));
@@ -105,9 +108,9 @@ class AttendanceExportFilterTest extends TestCase
 
     public function test_csv_export_orders_rows_by_latest_clock_in_time(): void
     {
-        $manager = User::factory()->create(['role' => 2]);
-        $older = User::factory()->create(['role' => 3, 'name' => 'Older Shift']);
-        $newer = User::factory()->create(['role' => 3, 'name' => 'Newer Shift']);
+        $manager = User::factory()->create(['role' => self::ROLE_MANAGER]);
+        $older = User::factory()->create(['role' => self::ROLE_STAFF, 'name' => 'Older Shift']);
+        $newer = User::factory()->create(['role' => self::ROLE_STAFF, 'name' => 'Newer Shift']);
 
         Attendance::create([
             'user_id' => $older->id,
@@ -141,7 +144,7 @@ class AttendanceExportFilterTest extends TestCase
 
     public function test_csv_export_is_forbidden_for_staff_role(): void
     {
-        $staff = User::factory()->create(['role' => 3]);
+        $staff = User::factory()->create(['role' => self::ROLE_STAFF]);
 
         $this->actingAs($staff)
             ->get(route('attendance.export'))

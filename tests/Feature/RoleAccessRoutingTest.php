@@ -12,11 +12,15 @@ class RoleAccessRoutingTest extends TestCase
 {
     use RefreshDatabase;
 
+    private const ROLE_ADMIN = 1;
+    private const ROLE_MANAGER = 2;
+    private const ROLE_STAFF = 3;
+
     public function test_panel_access_follows_role_rules(): void
     {
-        $admin = User::factory()->make(['role' => 1]);
-        $manager = User::factory()->make(['role' => 2]);
-        $staff = User::factory()->make(['role' => 3]);
+        $admin = User::factory()->make(['role' => self::ROLE_ADMIN]);
+        $manager = User::factory()->make(['role' => self::ROLE_MANAGER]);
+        $staff = User::factory()->make(['role' => self::ROLE_STAFF]);
 
         $adminPanel = $this->panelMock('admin');
         $staffPanel = $this->panelMock('staff');
@@ -36,9 +40,9 @@ class RoleAccessRoutingTest extends TestCase
     public function test_login_redirects_by_role(): void
     {
         $password = 'password'; // UserFactory default password
-        $admin = User::factory()->create(['role' => 1, 'phone' => '01111111111']);
-        $manager = User::factory()->create(['role' => 2, 'phone' => '01111111112']);
-        $staff = User::factory()->create(['role' => 3, 'phone' => '01111111113']);
+        $admin = User::factory()->create(['role' => self::ROLE_ADMIN, 'phone' => '01111111111']);
+        $manager = User::factory()->create(['role' => self::ROLE_MANAGER, 'phone' => '01111111112']);
+        $staff = User::factory()->create(['role' => self::ROLE_STAFF, 'phone' => '01111111113']);
 
         $this->post(route('login.post'), [
             'login' => $admin->phone,
