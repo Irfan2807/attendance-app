@@ -46,24 +46,9 @@ class RoleAccessRoutingTest extends TestCase
         $manager = User::factory()->create(['role' => self::ROLE_MANAGER, 'phone' => '01111111112', 'password' => $hashedPassword]);
         $staff = User::factory()->create(['role' => self::ROLE_STAFF, 'phone' => '01111111113', 'password' => $hashedPassword]);
 
-        $this->post(route('login.post'), [
-            'login' => $admin->phone,
-            'password' => self::TEST_PASSWORD,
-        ])->assertRedirect('/admin');
-
-        $this->post(route('logout'));
-
-        $this->post(route('login.post'), [
-            'login' => $manager->phone,
-            'password' => self::TEST_PASSWORD,
-        ])->assertRedirect('/staff');
-
-        $this->post(route('logout'));
-
-        $this->post(route('login.post'), [
-            'login' => $staff->phone,
-            'password' => self::TEST_PASSWORD,
-        ])->assertRedirect('/staff');
+        $this->loginAndAssertRedirect($admin->phone, '/admin');
+        $this->loginAndAssertRedirect($manager->phone, '/staff');
+        $this->loginAndAssertRedirect($staff->phone, '/staff');
     }
 
     public function test_guest_is_redirected_to_login_for_export_route(): void
@@ -78,5 +63,15 @@ class RoleAccessRoutingTest extends TestCase
         $panel->shouldReceive('getId')->andReturn($id);
 
         return $panel;
+    }
+
+    private function loginAndAssertRedirect(string $phone, string $redirectPath): void
+    {
+        $this->post(route('login.post'), [
+            'login' => $phone,
+            'password' => self::TEST_PASSWORD,
+        ])->assertRedirect($redirectPath);
+
+        $this->post(route('logout'));
     }
 }
