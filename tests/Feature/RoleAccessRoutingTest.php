@@ -12,7 +12,7 @@ class RoleAccessRoutingTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_can_access_panel_follows_role_rules_for_admin_and_staff_panels(): void
+    public function test_panel_access_follows_role_rules(): void
     {
         $admin = User::factory()->make(['role' => 1]);
         $manager = User::factory()->make(['role' => 2]);

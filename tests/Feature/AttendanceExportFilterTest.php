@@ -131,12 +131,12 @@ class AttendanceExportFilterTest extends TestCase
         $response->assertOk();
 
         $csv = $response->streamedContent();
-        $newerPos = strpos($csv, 'Newer Shift');
-        $olderPos = strpos($csv, 'Older Shift');
+        $newerShiftPosition = strpos($csv, 'Newer Shift');
+        $olderShiftPosition = strpos($csv, 'Older Shift');
 
-        $this->assertNotFalse($newerPos);
-        $this->assertNotFalse($olderPos);
-        $this->assertLessThan($olderPos, $newerPos);
+        $this->assertNotFalse($newerShiftPosition);
+        $this->assertNotFalse($olderShiftPosition);
+        $this->assertLessThan($olderShiftPosition, $newerShiftPosition);
     }
 
     public function test_csv_export_is_forbidden_for_staff_role(): void
