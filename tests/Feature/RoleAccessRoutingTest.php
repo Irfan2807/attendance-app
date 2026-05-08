@@ -15,6 +15,7 @@ class RoleAccessRoutingTest extends TestCase
     private const ROLE_ADMIN = 1;
     private const ROLE_MANAGER = 2;
     private const ROLE_STAFF = 3;
+    private const TEST_PASSWORD = 'password';
 
     public function test_panel_access_follows_role_rules(): void
     {
@@ -39,28 +40,27 @@ class RoleAccessRoutingTest extends TestCase
 
     public function test_login_redirects_by_role(): void
     {
-        $password = 'password'; // UserFactory default password
-        $admin = User::factory()->create(['role' => self::ROLE_ADMIN, 'phone' => '01111111111']);
-        $manager = User::factory()->create(['role' => self::ROLE_MANAGER, 'phone' => '01111111112']);
-        $staff = User::factory()->create(['role' => self::ROLE_STAFF, 'phone' => '01111111113']);
+        $admin = User::factory()->create(['role' => self::ROLE_ADMIN, 'phone' => '01111111111', 'password' => self::TEST_PASSWORD]);
+        $manager = User::factory()->create(['role' => self::ROLE_MANAGER, 'phone' => '01111111112', 'password' => self::TEST_PASSWORD]);
+        $staff = User::factory()->create(['role' => self::ROLE_STAFF, 'phone' => '01111111113', 'password' => self::TEST_PASSWORD]);
 
         $this->post(route('login.post'), [
             'login' => $admin->phone,
-            'password' => $password,
+            'password' => self::TEST_PASSWORD,
         ])->assertRedirect('/admin');
 
         $this->post(route('logout'));
 
         $this->post(route('login.post'), [
             'login' => $manager->phone,
-            'password' => $password,
+            'password' => self::TEST_PASSWORD,
         ])->assertRedirect('/staff');
 
         $this->post(route('logout'));
 
         $this->post(route('login.post'), [
             'login' => $staff->phone,
-            'password' => $password,
+            'password' => self::TEST_PASSWORD,
         ])->assertRedirect('/staff');
     }
 
