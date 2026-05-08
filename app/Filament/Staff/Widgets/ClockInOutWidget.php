@@ -4,15 +4,14 @@ namespace App\Filament\Staff\Widgets;
 
 use App\Models\Attendance;
 use App\Models\AttendanceInfraction;
-use App\Services\AttendanceWindowService;
 use App\Services\AttendanceVerificationService;
-use Carbon\Carbon;
+use App\Services\AttendanceWindowService;
 use Filament\Widgets\Widget;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Livewire\Attributes\On;
 use Livewire\Attributes\Lazy;
+use Livewire\Attributes\On;
 
 #[Lazy]
 class ClockInOutWidget extends Widget
@@ -21,24 +20,37 @@ class ClockInOutWidget extends Widget
 
     protected static ?int $sort = 0;
 
-    protected int | string | array $columnSpan = [
+    protected int|string|array $columnSpan = [
         'default' => 1,
         'lg' => 1,
     ];
 
     public bool $isLoading = false;
+
     public ?string $latitude = null;
+
     public ?string $longitude = null;
+
     public bool $isClockedIn = false;
+
     public bool $isClockedOut = false;
+
     public bool $isCompleted = false;
+
     public bool $isPendingApproval = false;
+
     public ?string $clockInTime = null;
+
     public ?string $clockOutTime = null;
+
     public ?string $locationError = null;
+
     public bool $showManualInput = false;
+
     public ?string $manualLatitude = null;
+
     public ?string $manualLongitude = null;
+
     public ?string $clientIp = null;
 
     public function mount(): void
@@ -51,7 +63,7 @@ class ClockInOutWidget extends Widget
     {
         // Reload state whenever the component is rehydrated
         $this->loadAttendanceState();
-        if (!$this->clientIp) {
+        if (! $this->clientIp) {
             $this->clientIp = request()->ip();
         }
     }
@@ -68,16 +80,16 @@ class ClockInOutWidget extends Widget
     {
         $userId = Auth::id();
 
-        Cache::forget('attendance_state_' . $userId);
-        Cache::forget('clock_in_details_stats_' . $userId);
-        Cache::forget('staff_stats_' . $userId);
+        Cache::forget('attendance_state_'.$userId);
+        Cache::forget('clock_in_details_stats_'.$userId);
+        Cache::forget('staff_stats_'.$userId);
     }
 
     public function loadAttendanceState(): void
     {
         $userId = Auth::user()->id;
         $now = now();
-        $cacheKey = 'attendance_state_' . $userId;
+        $cacheKey = 'attendance_state_'.$userId;
 
         // Handle stale shift auto-close BEFORE the cache read so we never cache stale state.
         $activeShift = Attendance::where('user_id', $userId)
@@ -86,23 +98,23 @@ class ClockInOutWidget extends Widget
             ->first();
 
         if ($activeShift && AttendanceWindowService::isStaleShift($activeShift->clock_in_time, $now)) {
-            DB::transaction(function () use ($activeShift, $userId, $now) {
+            DB::transaction(function () use ($activeShift, $userId) {
                 $autoClockOut = $activeShift->clock_in_time->copy()->addHours(AttendanceWindowService::maxShiftHours());
-                $notesPrefix = $activeShift->verification_notes ? $activeShift->verification_notes . ' | ' : '';
+                $notesPrefix = $activeShift->verification_notes ? $activeShift->verification_notes.' | ' : '';
 
                 $activeShift->update([
                     'clock_out_time' => $autoClockOut,
                     'status' => 'temporary',
-                    'verification_notes' => $notesPrefix . 'Auto-closed stale shift after max shift duration',
+                    'verification_notes' => $notesPrefix.'Auto-closed stale shift after max shift duration',
                 ]);
 
                 // Record the infraction and increment the user's counter.
                 AttendanceInfraction::create([
-                    'user_id'             => $userId,
-                    'attendance_id'       => $activeShift->id,
-                    'infraction_type'     => 'forgot_clock_out',
+                    'user_id' => $userId,
+                    'attendance_id' => $activeShift->id,
+                    'infraction_type' => 'forgot_clock_out',
                     'auto_clock_out_time' => $autoClockOut,
-                    'notes'               => 'Shift auto-closed after exceeding maximum shift duration',
+                    'notes' => 'Shift auto-closed after exceeding maximum shift duration',
                 ]);
 
                 \App\Models\User::where('id', $userId)->increment('incomplete_clock_out_count');
@@ -124,7 +136,7 @@ class ClockInOutWidget extends Widget
             }
 
             $todayStart = $now->copy()->startOfDay();
-            $todayEnd   = $now->copy()->endOfDay();
+            $todayEnd = $now->copy()->endOfDay();
 
             // No active shift: return today's latest attendance if any.
             return Attendance::where('user_id', $userId)
@@ -142,7 +154,7 @@ class ClockInOutWidget extends Widget
         $this->clockOutTime = null;
 
         // No record found - ready to clock in
-        if (!$attendanceState) {
+        if (! $attendanceState) {
             return;
         }
 
@@ -151,9 +163,10 @@ class ClockInOutWidget extends Widget
         $this->clockOutTime = $attendanceState->clock_out_time ? $attendanceState->clock_out_time->format('H:i') : null;
 
         // Has NOT clocked out yet - currently working
-        if (!$attendanceState->clock_out_time) {
+        if (! $attendanceState->clock_out_time) {
             $this->isClockedIn = true;
             $this->isPendingApproval = ($attendanceState->status === 'pending');
+
             return;
         }
 
@@ -179,9 +192,9 @@ class ClockInOutWidget extends Widget
             $this->longitude = $this->manualLongitude;
             $this->locationError = null;
             $this->showManualInput = false;
-            
-            $this->dispatch('notify', 
-                title: '✓ Manual Coordinates Set', 
+
+            $this->dispatch('notify',
+                title: '✓ Manual Coordinates Set',
                 message: "Lat: {$this->latitude}, Lon: {$this->longitude}",
                 status: 'success'
             );
@@ -190,7 +203,7 @@ class ClockInOutWidget extends Widget
 
     public function toggleManualInput(): void
     {
-        $this->showManualInput = !$this->showManualInput;
+        $this->showManualInput = ! $this->showManualInput;
     }
 
     public function requestLocation(): void
@@ -227,11 +240,12 @@ class ClockInOutWidget extends Widget
             ->first();
 
         if ($activeShift) {
-            $this->dispatch('notify', 
-                title: 'Already Clocked In', 
+            $this->dispatch('notify',
+                title: 'Already Clocked In',
                 message: 'You are already clocked in. Please clock out first.',
                 status: 'warning'
             );
+
             return;
         }
 
@@ -240,13 +254,13 @@ class ClockInOutWidget extends Widget
         try {
             // Get client IP
             $clientIp = AttendanceVerificationService::getClientIp();
-            
+
             // Step 1: Check IP Address
             $ipVerified = AttendanceVerificationService::verifyOfficeIp($clientIp);
-            
+
             // Step 2: Check Location (if IP not verified)
             $locationVerified = null;
-            if (!$ipVerified && ($this->latitude && $this->longitude)) {
+            if (! $ipVerified && ($this->latitude && $this->longitude)) {
                 $locationVerified = AttendanceVerificationService::verifyOfficeLocation(
                     $this->latitude,
                     $this->longitude
@@ -260,7 +274,7 @@ class ClockInOutWidget extends Widget
             // If this is an additional shift (already completed one today), always require approval
             if ($completedShift) {
                 $status = 'pending';
-                $verificationNotes[] = "Additional shift - Requires manager approval";
+                $verificationNotes[] = 'Additional shift - Requires manager approval';
                 $verificationNotes[] = "Previous shift: {$completedShift->clock_in_time->format('H:i')} - {$completedShift->clock_out_time->format('H:i')}";
             } elseif ($ipVerified) {
                 $status = 'approved';
@@ -283,14 +297,14 @@ class ClockInOutWidget extends Widget
 
                 if ($groupVerified) {
                     $status = 'approved';
-                    $verificationNotes[] = "Group Verified: 5+ staff nearby";
+                    $verificationNotes[] = 'Group Verified: 5+ staff nearby';
                     $verificationNotes[] = "Location: {$this->latitude}, {$this->longitude}";
                 } else {
                     $verificationNotes[] = "IP: {$clientIp}";
                     if ($this->latitude && $this->longitude) {
                         $verificationNotes[] = "Location: {$this->latitude}, {$this->longitude}";
                     }
-                    $verificationNotes[] = "Awaiting manager approval";
+                    $verificationNotes[] = 'Awaiting manager approval';
                 }
             }
 
@@ -308,16 +322,17 @@ class ClockInOutWidget extends Widget
 
                 if ($existingActive) {
                     $alreadyClockedIn = true;
+
                     return null;
                 }
 
                 return Attendance::create([
-                    'user_id'            => $user->id,
-                    'site_name'          => $ipVerified?->name ?? $locationVerified?->name ?? 'Unknown Location',
-                    'latitude'           => $this->latitude ? (float) $this->latitude : 0,
-                    'longitude'          => $this->longitude ? (float) $this->longitude : 0,
-                    'status'             => $status,
-                    'clock_in_time'      => now(),
+                    'user_id' => $user->id,
+                    'site_name' => $ipVerified?->name ?? $locationVerified?->name ?? 'Unknown Location',
+                    'latitude' => $this->latitude ? (float) $this->latitude : 0,
+                    'longitude' => $this->longitude ? (float) $this->longitude : 0,
+                    'status' => $status,
+                    'clock_in_time' => now(),
                     'verification_notes' => implode(' | ', $verificationNotes),
                 ]);
             });
@@ -328,6 +343,7 @@ class ClockInOutWidget extends Widget
                     message: 'You are already clocked in. Please clock out first.',
                     status: 'warning'
                 );
+
                 return;
             }
 
@@ -342,27 +358,27 @@ class ClockInOutWidget extends Widget
 
             // Send notification based on status
             if ($status === 'approved') {
-                $this->dispatch('notify', 
-                    title: '✓ Clocked In Successfully', 
-                    message: 'Time: ' . now()->format('H:i'),
+                $this->dispatch('notify',
+                    title: '✓ Clocked In Successfully',
+                    message: 'Time: '.now()->format('H:i'),
                     status: 'success'
                 );
             } else {
-                $notificationMessage = $completedShift 
+                $notificationMessage = $completedShift
                     ? 'Additional shift requires manager approval'
                     : 'Your clock-in requires manager verification';
-                    
-                $this->dispatch('notify', 
-                    title: '⏳ Pending Manager Approval', 
+
+                $this->dispatch('notify',
+                    title: '⏳ Pending Manager Approval',
                     message: $notificationMessage,
                     status: 'warning'
                 );
             }
 
         } catch (\Exception $e) {
-            $this->dispatch('notify', 
-                title: '✗ Error', 
-                message: 'Failed to clock in: ' . $e->getMessage(),
+            $this->dispatch('notify',
+                title: '✗ Error',
+                message: 'Failed to clock in: '.$e->getMessage(),
                 status: 'error'
             );
         } finally {
@@ -373,12 +389,13 @@ class ClockInOutWidget extends Widget
     public function clockOut(): void
     {
         // Double check if not clocked in
-        if (!$this->isClockedIn) {
-            $this->dispatch('notify', 
-                title: 'Not Clocked In', 
+        if (! $this->isClockedIn) {
+            $this->dispatch('notify',
+                title: 'Not Clocked In',
                 message: 'Please clock in first.',
                 status: 'warning'
             );
+
             return;
         }
 
@@ -393,13 +410,14 @@ class ClockInOutWidget extends Widget
                 ->orderBy('clock_in_time', 'desc')
                 ->first();
 
-            if (!$todayAttendance) {
-                $this->dispatch('notify', 
-                    title: 'Not Clocked In', 
+            if (! $todayAttendance) {
+                $this->dispatch('notify',
+                    title: 'Not Clocked In',
                     message: 'Please clock in first.',
                     status: 'warning'
                 );
                 $this->isLoading = false;
+
                 return;
             }
 
@@ -423,17 +441,17 @@ class ClockInOutWidget extends Widget
                 $this->isCompleted = false;
             }
             $this->clockOutTime = $clockOutTime->format('H:i');
-            
-            $this->dispatch('notify', 
-                title: '✓ Clocked Out Successfully', 
-                message: 'Time: ' . $this->clockOutTime,
+
+            $this->dispatch('notify',
+                title: '✓ Clocked Out Successfully',
+                message: 'Time: '.$this->clockOutTime,
                 status: 'success'
             );
 
         } catch (\Exception $e) {
-            $this->dispatch('notify', 
-                title: '✗ Error', 
-                message: 'Failed to clock out: ' . $e->getMessage(),
+            $this->dispatch('notify',
+                title: '✗ Error',
+                message: 'Failed to clock out: '.$e->getMessage(),
                 status: 'error'
             );
         } finally {
@@ -443,15 +461,14 @@ class ClockInOutWidget extends Widget
 
     public function workedHours()
     {
-        $todayStart = now()->startOfDay();
-        $todayEnd = now()->endOfDay();
+        [$todayStart, $todayEnd] = AttendanceWindowService::operationalDayRange(now());
 
         $attendance = Attendance::where('user_id', Auth::user()->id)
             ->whereBetween('clock_in_time', [$todayStart, $todayEnd])
             ->orderBy('clock_in_time', 'desc')
             ->first();
-        
-        if (!$attendance || !$attendance->clock_out_time) {
+
+        if (! $attendance || ! $attendance->clock_out_time) {
             return '0m';
         }
 
