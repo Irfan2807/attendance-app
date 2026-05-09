@@ -2,7 +2,6 @@
 
 namespace App\Filament\Concerns;
 
-use App\Models\User;
 use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Auth;
 
@@ -12,7 +11,7 @@ trait HasManagementAnalyticsAccess
     {
         $user = Auth::user();
 
-        return $user && in_array($user->role, [User::ROLE_ADMIN, User::ROLE_MANAGER], true);
+        return $user && ($user->isAdmin() || $user->isManager());
     }
 
     protected function analyticsCacheKey(string $suffix): string
