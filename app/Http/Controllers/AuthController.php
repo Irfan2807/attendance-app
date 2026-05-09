@@ -36,7 +36,7 @@ class AuthController extends Controller
         $remember = $request->boolean('remember');
 
         // Only phone number login is supported
-        if (!preg_match('/^01[0-9]{8,9}$/', $input['login'])) {
+        if (! preg_match('/^01[0-9]{8,9}$/', $input['login'])) {
             throw ValidationException::withMessages([
                 'login' => ['Please enter a valid Malaysian phone number (e.g. 0123456789).'],
             ]);
@@ -46,6 +46,7 @@ class AuthController extends Controller
 
         if (Auth::attempt($credentials, $remember)) {
             $request->session()->regenerate();
+
             return $this->redirectBasedOnRole();
         }
 

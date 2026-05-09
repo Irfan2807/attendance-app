@@ -12,7 +12,7 @@ trait HasManagementAnalyticsAccess
     {
         $user = Auth::user();
 
-        return $user && in_array((int) $user->role, [User::ROLE_ADMIN, User::ROLE_MANAGER], true);
+        return $user && in_array($user->role, [User::ROLE_ADMIN, User::ROLE_MANAGER], true);
     }
 
     protected function analyticsCacheKey(string $suffix): string
