@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\RoleRedirector;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
@@ -71,17 +72,6 @@ class AuthController extends Controller
      */
     protected function redirectBasedOnRole()
     {
-        $user = Auth::user();
-
-        if (!$user) {
-            return redirect('/login');
-        }
-        // staff or manager
-        if (in_array($user->role, [3, 2])) {
-            return redirect('/staff');
-        }
-
-        // master admin
-        return redirect('/admin');
+        return redirect(RoleRedirector::pathFor(Auth::user()));
     }
 }

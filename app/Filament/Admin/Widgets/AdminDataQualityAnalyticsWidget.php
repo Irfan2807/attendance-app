@@ -2,20 +2,19 @@
 
 namespace App\Filament\Admin\Widgets;
 
+use App\Filament\Shared\Widgets\ManagementAnalyticsStatsWidget;
 use App\Services\AttendanceAnalyticsService;
-use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
-use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Lazy;
 
 #[Lazy]
-class AdminDataQualityAnalyticsWidget extends BaseWidget
+class AdminDataQualityAnalyticsWidget extends ManagementAnalyticsStatsWidget
 {
     protected static ?int $sort = 4;
 
     protected function getStats(): array
     {
-        $stats = Cache::remember('admin_data_quality_analytics', 120, function (): array {
+        $stats = $this->rememberAnalytics('data-quality-analytics', 120, function (): array {
             [$start, $end] = AttendanceAnalyticsService::rollingRange(30);
 
             return AttendanceAnalyticsService::dataQualityMetrics($start, $end);

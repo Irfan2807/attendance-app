@@ -16,6 +16,12 @@ class User extends Authenticatable implements FilamentUser
 {
     use HasFactory, Notifiable;
 
+    public const ROLE_ADMIN = 1;
+
+    public const ROLE_MANAGER = 2;
+
+    public const ROLE_STAFF = 3;
+
     /** @var array<string> */
     protected $fillable = [
         'name',
@@ -51,22 +57,39 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasMany(Attendance::class);
     }
 
+    public function isAdmin(): bool
+    {
+        return $this->role === self::ROLE_ADMIN;
+    }
+
+    public function isManager(): bool
+    {
+        return $this->role === self::ROLE_MANAGER;
+    }
+
+    public function isStaff(): bool
+    {
+        return $this->role === self::ROLE_STAFF;
+    }
+
+    public function dashboardPath(): string
+    {
+        return $this->isAdmin() ? '/admin' : '/staff';
+    }
+
     // The Gatekeeper Logic
     public function canAccessPanel(Panel $panel): bool
     {
-        // 1 = Admin, 2 = Manager, 3 = Staff
-
         // 1. ADMIN PANEL (Orange)
-        // ONLY Role 1 (Super Admin) allowed.
+        // Only admins can access the admin panel.
         if ($panel->getId() === 'admin') {
-            return $this->role === 1;
+            return $this->isAdmin();
         }
 
         // 2. STAFF PANEL (Green)
-        // ONLY Role 2 (Manager) and Role 3 (Staff) allowed.
-        // Admins (Role 1) are explicitly BLOCKED here.
+        // Admins remain admin-only and are explicitly blocked from this panel.
         if ($panel->getId() === 'staff') {
-            return in_array($this->role, [2, 3]);
+            return $this->isManager() || $this->isStaff();
         }
 
         return false; // Default: Block access to unknown panels
