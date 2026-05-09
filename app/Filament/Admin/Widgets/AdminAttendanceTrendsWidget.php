@@ -2,13 +2,12 @@
 
 namespace App\Filament\Admin\Widgets;
 
+use App\Filament\Shared\Widgets\ManagementAnalyticsChartWidget;
 use App\Services\AttendanceAnalyticsService;
-use Filament\Widgets\ChartWidget;
-use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Lazy;
 
 #[Lazy]
-class AdminAttendanceTrendsWidget extends ChartWidget
+class AdminAttendanceTrendsWidget extends ManagementAnalyticsChartWidget
 {
     protected static ?string $heading = 'Attendance Trends (Last 30 Operational Days)';
 
@@ -18,7 +17,7 @@ class AdminAttendanceTrendsWidget extends ChartWidget
 
     protected function getData(): array
     {
-        $metrics = Cache::remember('admin_attendance_trend_chart', 120, function (): array {
+        $metrics = $this->rememberAnalytics('attendance-trends', 120, function (): array {
             $attendanceRate = AttendanceAnalyticsService::attendanceRateTrend(30);
             $lateStarts = AttendanceAnalyticsService::lateStartsTrend(30);
             $overtime = AttendanceAnalyticsService::overtimeTrend(30);

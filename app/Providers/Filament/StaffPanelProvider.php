@@ -2,18 +2,19 @@
 
 namespace App\Providers\Filament;
 
-use App\Filament\Staff\Widgets\ClockInOutWidget;
+use App\Filament\Admin\Widgets\AdminApprovalAnalyticsWidget;
+use App\Filament\Admin\Widgets\AdminAttendanceKpiWidget;
+use App\Filament\Admin\Widgets\AdminAttendanceTrendsWidget;
+use App\Filament\Admin\Widgets\AdminDataQualityAnalyticsWidget;
+use App\Filament\Staff\Pages\Dashboard;
 use App\Filament\Staff\Widgets\ClockInDetailsWidget;
+use App\Filament\Staff\Widgets\ClockInOutWidget;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\NavigationGroup;
-use Filament\Pages;
-use App\Filament\Staff\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
-use Filament\Support\Colors\Color;
-use Filament\Widgets;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -21,7 +22,6 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\AuthenticateSession;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
-use Illuminate\Support\Facades\Auth;
 
 class StaffPanelProvider extends PanelProvider
 {
@@ -41,6 +41,10 @@ class StaffPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Staff/Widgets'), for: 'App\\Filament\\Staff\\Widgets')
             ->widgets([
+                AdminAttendanceKpiWidget::class,
+                AdminAttendanceTrendsWidget::class,
+                AdminApprovalAnalyticsWidget::class,
+                AdminDataQualityAnalyticsWidget::class,
                 ClockInOutWidget::class,
                 ClockInDetailsWidget::class,
             ])

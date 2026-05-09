@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\RoleRedirector;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
@@ -35,7 +36,7 @@ class AuthController extends Controller
         $remember = $request->boolean('remember');
 
         // Only phone number login is supported
-        if (!preg_match('/^01[0-9]{8,9}$/', $input['login'])) {
+        if (! preg_match('/^01[0-9]{8,9}$/', $input['login'])) {
             throw ValidationException::withMessages([
                 'login' => ['Please enter a valid Malaysian phone number (e.g. 0123456789).'],
             ]);
@@ -45,6 +46,7 @@ class AuthController extends Controller
 
         if (Auth::attempt($credentials, $remember)) {
             $request->session()->regenerate();
+
             return $this->redirectBasedOnRole();
         }
 
@@ -71,17 +73,6 @@ class AuthController extends Controller
      */
     protected function redirectBasedOnRole()
     {
-        $user = Auth::user();
-
-        if (!$user) {
-            return redirect('/login');
-        }
-        // staff or manager
-        if (in_array($user->role, [3, 2])) {
-            return redirect('/staff');
-        }
-
-        // master admin
-        return redirect('/admin');
+        return redirect(RoleRedirector::pathFor(Auth::user()));
     }
 }

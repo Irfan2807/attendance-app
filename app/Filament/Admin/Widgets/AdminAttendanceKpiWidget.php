@@ -2,21 +2,20 @@
 
 namespace App\Filament\Admin\Widgets;
 
+use App\Filament\Shared\Widgets\ManagementAnalyticsStatsWidget;
 use App\Services\AttendanceAnalyticsService;
 use App\Services\AttendanceMetricsService;
-use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
-use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Lazy;
 
 #[Lazy]
-class AdminAttendanceKpiWidget extends BaseWidget
+class AdminAttendanceKpiWidget extends ManagementAnalyticsStatsWidget
 {
     protected static ?int $sort = 1;
 
     protected function getStats(): array
     {
-        $metrics = Cache::remember('admin_attendance_kpi_stats', 120, function (): array {
+        $metrics = $this->rememberAnalytics('attendance-kpi', 120, function (): array {
             [$todayStart, $todayEnd] = AttendanceAnalyticsService::operationalDayRange();
             [$monthStart, $monthEnd] = AttendanceAnalyticsService::rollingRange(30);
 

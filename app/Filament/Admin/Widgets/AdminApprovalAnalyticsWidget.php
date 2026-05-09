@@ -2,21 +2,20 @@
 
 namespace App\Filament\Admin\Widgets;
 
+use App\Filament\Shared\Widgets\ManagementAnalyticsStatsWidget;
 use App\Services\AttendanceAnalyticsService;
 use App\Services\AttendanceMetricsService;
-use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
-use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Lazy;
 
 #[Lazy]
-class AdminApprovalAnalyticsWidget extends BaseWidget
+class AdminApprovalAnalyticsWidget extends ManagementAnalyticsStatsWidget
 {
     protected static ?int $sort = 3;
 
     protected function getStats(): array
     {
-        $stats = Cache::remember('admin_approval_analytics', 120, function (): array {
+        $stats = $this->rememberAnalytics('approval-analytics', 120, function (): array {
             [$start, $end] = AttendanceAnalyticsService::rollingRange(30);
             $approval = AttendanceAnalyticsService::approvalAnalytics($start, $end);
             $pending = AttendanceAnalyticsService::pendingApprovalMetrics();
