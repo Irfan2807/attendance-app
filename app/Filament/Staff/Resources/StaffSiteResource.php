@@ -29,8 +29,7 @@ class StaffSiteResource extends Resource
 
     public static function canCreate(): bool
     {
-        // Site creation and editing is restricted to the admin panel (Super Admin only).
-        return false;
+        return Auth::user() && Auth::user()->role === 2;
     }
 
     public static function canEdit($record): bool
@@ -122,6 +121,7 @@ class StaffSiteResource extends Resource
     {
         return [
             'index' => Pages\ListSites::route('/'),
+            'create' => Pages\CreateSite::route('/create'),
         ];
     }
 }
