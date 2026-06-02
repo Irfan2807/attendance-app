@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 
 class AttendanceVerificationService
 {
+    private const BYTE_MASK = 0xFF;
+
     /**
      * Get client IP address from request.
      * Uses Laravel's built-in ip() method which respects configured trusted proxies,
@@ -42,10 +44,22 @@ class AttendanceVerificationService
         }
 
         // Fallback: support CIDR ranges and minor input formatting issues.
-        return Site::where('is_active', true)
+        $matchedSite = null;
+
+        Site::where('is_active', true)
             ->whereNotNull('ip_address')
-            ->get()
-            ->first(fn (Site $site) => self::ipMatchesRule($normalizedClientIp, $site->ip_address));
+            ->orderBy('id')
+            ->chunkById(200, function ($sites) use ($normalizedClientIp, &$matchedSite) {
+                foreach ($sites as $site) {
+                    if (self::ipMatchesRule($normalizedClientIp, $site->ip_address)) {
+                        $matchedSite = $site;
+
+                        return false;
+                    }
+                }
+            });
+
+        return $matchedSite;
     }
 
     private static function normalizeIp(?string $ip): ?string
@@ -121,7 +135,7 @@ class AttendanceVerificationService
             return true;
         }
 
-        $mask = (0xFF << (8 - $remainingBits)) & 0xFF;
+        $mask = (self::BYTE_MASK << (8 - $remainingBits)) & self::BYTE_MASK;
 
         return ((ord($clientBinary[$fullBytes]) & $mask) === (ord($networkBinary[$fullBytes]) & $mask));
     }
