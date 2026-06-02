@@ -26,10 +26,104 @@ class AttendanceVerificationService
             return null;
         }
 
-        // Find site matching the client IP
-        return Site::where('ip_address', $clientIp)
+        $normalizedClientIp = self::normalizeIp($clientIp);
+
+        if (! $normalizedClientIp) {
+            return null;
+        }
+
+        // Fast path: exact match first.
+        $exactMatch = Site::where('ip_address', $normalizedClientIp)
             ->where('is_active', true)
             ->first();
+
+        if ($exactMatch) {
+            return $exactMatch;
+        }
+
+        // Fallback: support CIDR ranges and minor input formatting issues.
+        return Site::where('is_active', true)
+            ->whereNotNull('ip_address')
+            ->get()
+            ->first(fn (Site $site) => self::ipMatchesRule($normalizedClientIp, $site->ip_address));
+    }
+
+    private static function normalizeIp(?string $ip): ?string
+    {
+        if (! $ip) {
+            return null;
+        }
+
+        $ip = trim($ip);
+
+        // Normalize IPv4-mapped IPv6 (::ffff:192.168.1.10) into plain IPv4.
+        if (str_starts_with(strtolower($ip), '::ffff:')) {
+            $mappedIpv4 = substr($ip, 7);
+            if (filter_var($mappedIpv4, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+                return $mappedIpv4;
+            }
+        }
+
+        return filter_var($ip, FILTER_VALIDATE_IP) ? $ip : null;
+    }
+
+    private static function ipMatchesRule(string $clientIp, ?string $rule): bool
+    {
+        if (! $rule) {
+            return false;
+        }
+
+        $rule = trim($rule);
+        if ($rule === '') {
+            return false;
+        }
+
+        // Exact IP match
+        $ruleIp = self::normalizeIp($rule);
+        if ($ruleIp && $ruleIp === $clientIp) {
+            return true;
+        }
+
+        // CIDR range match (e.g. 192.168.1.0/24)
+        if (! str_contains($rule, '/')) {
+            return false;
+        }
+
+        [$network, $prefix] = explode('/', $rule, 2);
+        $network = self::normalizeIp($network);
+        $prefix = trim($prefix);
+
+        if (! $network || ! is_numeric($prefix)) {
+            return false;
+        }
+
+        $prefix = (int) $prefix;
+        $clientBinary = inet_pton($clientIp);
+        $networkBinary = inet_pton($network);
+
+        if ($clientBinary === false || $networkBinary === false || strlen($clientBinary) !== strlen($networkBinary)) {
+            return false;
+        }
+
+        $maxPrefix = strlen($networkBinary) * 8;
+        if ($prefix < 0 || $prefix > $maxPrefix) {
+            return false;
+        }
+
+        $fullBytes = intdiv($prefix, 8);
+        $remainingBits = $prefix % 8;
+
+        if (strncmp($clientBinary, $networkBinary, $fullBytes) !== 0) {
+            return false;
+        }
+
+        if ($remainingBits === 0) {
+            return true;
+        }
+
+        $mask = (0xFF << (8 - $remainingBits)) & 0xFF;
+
+        return ((ord($clientBinary[$fullBytes]) & $mask) === (ord($networkBinary[$fullBytes]) & $mask));
     }
 
     /**
