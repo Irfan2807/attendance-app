@@ -24,13 +24,16 @@ class StaffSiteResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return Auth::user() && Auth::user()->role === 2;
+        $user = Auth::user();
+
+        return $user && $user->isManager();
     }
 
     public static function canCreate(): bool
     {
-        // Site creation and editing is restricted to the admin panel (Super Admin only).
-        return false;
+        $user = Auth::user();
+
+        return $user && $user->isManager();
     }
 
     public static function canEdit($record): bool
@@ -122,6 +125,7 @@ class StaffSiteResource extends Resource
     {
         return [
             'index' => Pages\ListSites::route('/'),
+            'create' => Pages\CreateSite::route('/create'),
         ];
     }
 }
