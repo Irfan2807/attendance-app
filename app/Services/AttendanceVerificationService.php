@@ -135,6 +135,7 @@ class AttendanceVerificationService
             return true;
         }
 
+        // Build a mask for the remaining high-order bits in the partial byte (e.g. /25 => 10000000).
         $mask = (self::BYTE_MASK << (8 - $remainingBits)) & self::BYTE_MASK;
 
         return ((ord($clientBinary[$fullBytes]) & $mask) === (ord($networkBinary[$fullBytes]) & $mask));
