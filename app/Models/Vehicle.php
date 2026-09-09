@@ -11,6 +11,14 @@ class Vehicle extends Model
     use HasFactory;
 
     protected $guarded = [];
+    protected $fillable = [
+        'numberplate',
+        'name',
+        'current_mileage',
+        'next_service_mileage',
+        'is_active',
+        'notes',
+    ];
 
     protected $casts = [
         'is_active' => 'boolean',

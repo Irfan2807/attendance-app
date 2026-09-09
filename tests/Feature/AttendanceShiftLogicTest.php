@@ -4,7 +4,9 @@ namespace Tests\Feature;
 
 use App\Filament\Staff\Widgets\StaffAttendanceOverviewStatsWidget;
 use App\Models\Attendance;
+use App\Models\Site;
 use App\Models\User;
+use App\Services\AttendanceAnalyticsService;
 use App\Services\AttendanceMetricsService;
 use App\Services\AttendanceWindowService;
 use Carbon\Carbon;
@@ -97,5 +99,114 @@ class AttendanceShiftLogicTest extends TestCase
         ]);
 
         $this->assertSame(0, AttendanceMetricsService::overtimeMinutes($attendance));
+    }
+
+    public function test_site_coverage_only_counts_registered_active_sites_and_clamps_to_100(): void
+    {
+        Site::create(['name' => 'HQ Site', 'latitude' => 3.0, 'longitude' => 101.0, 'radius_meters' => 100, 'is_active' => true]);
+        Site::create(['name' => 'Warehouse Site', 'latitude' => 3.1, 'longitude' => 101.1, 'radius_meters' => 100, 'is_active' => true]);
+        Site::create(['name' => 'Old Inactive Site', 'latitude' => 3.2, 'longitude' => 101.2, 'radius_meters' => 100, 'is_active' => false]);
+
+        $user = User::factory()->create(['role' => 3]);
+        $start = Carbon::create(2026, 4, 1, 0, 0, 0);
+        $end = Carbon::create(2026, 4, 30, 23, 59, 59);
+
+        // Attendance at HQ Site
+        Attendance::create([
+            'user_id' => $user->id,
+            'site_name' => 'HQ Site',
+            'latitude' => 3.0,
+            'longitude' => 101.0,
+            'status' => 'approved',
+            'clock_in_time' => Carbon::create(2026, 4, 15, 8, 0, 0),
+        ]);
+
+        // Attendance at unregistered / unknown site name
+        Attendance::create([
+            'user_id' => $user->id,
+            'site_name' => 'Unknown Location / Remote',
+            'latitude' => 3.0,
+            'longitude' => 101.0,
+            'status' => 'approved',
+            'clock_in_time' => Carbon::create(2026, 4, 16, 8, 0, 0),
+        ]);
+
+        $coverage = AttendanceAnalyticsService::siteCoverage($start, $end);
+
+        $this->assertSame(1, $coverage['active_sites']);
+        $this->assertSame(2, $coverage['total_active_sites']);
+        $this->assertSame(50.0, $coverage['coverage_rate']);
+    }
+
+    public function test_late_starts_considers_day_and_night_shift_windows(): void
+    {
+        config()->set('attendance.late_grace_minutes', 15);
+        config()->set('attendance.day_shift_starts_at', 8);
+        config()->set('attendance.night_shift_starts_at', 17);
+
+        $user = User::factory()->create(['role' => 3]);
+        $ref = Carbon::create(2026, 4, 15, 20, 0, 0);
+
+        // On-time day shift (08:10 <= 08:15)
+        Attendance::create([
+            'user_id' => $user->id,
+            'latitude' => 3.0,
+            'longitude' => 101.0,
+            'status' => 'approved',
+            'clock_in_time' => Carbon::create(2026, 4, 15, 8, 10, 0),
+        ]);
+
+        // Late night shift (17:25 > 17:15)
+        Attendance::create([
+            'user_id' => $user->id,
+            'latitude' => 3.0,
+            'longitude' => 101.0,
+            'status' => 'approved',
+            'clock_in_time' => Carbon::create(2026, 4, 15, 17, 25, 0),
+        ]);
+
+        // On-time night shift (17:10 <= 17:15)
+        Attendance::create([
+            'user_id' => $user->id,
+            'latitude' => 3.0,
+            'longitude' => 101.0,
+            'status' => 'approved',
+            'clock_in_time' => Carbon::create(2026, 4, 15, 17, 10, 0),
+        ]);
+
+        $trend = AttendanceAnalyticsService::lateStartsTrend(1, $ref);
+        $this->assertSame([1], $trend['counts']);
+    }
+
+    public function test_attendance_rate_excludes_rejected_records(): void
+    {
+        $user1 = User::factory()->create(['role' => 3]);
+        $user2 = User::factory()->create(['role' => 3]);
+
+        $start = Carbon::create(2026, 4, 15, 8, 0, 0);
+        $end = Carbon::create(2026, 4, 16, 8, 0, 0);
+
+        // user1 has rejected attendance
+        Attendance::create([
+            'user_id' => $user1->id,
+            'latitude' => 3.0,
+            'longitude' => 101.0,
+            'status' => 'rejected',
+            'clock_in_time' => Carbon::create(2026, 4, 15, 9, 0, 0),
+        ]);
+
+        // user2 has approved attendance
+        Attendance::create([
+            'user_id' => $user2->id,
+            'latitude' => 3.0,
+            'longitude' => 101.0,
+            'status' => 'approved',
+            'clock_in_time' => Carbon::create(2026, 4, 15, 9, 0, 0),
+        ]);
+
+        $rateData = AttendanceAnalyticsService::attendanceRate($start, $end);
+        $this->assertSame(1, $rateData['present']);
+        $this->assertSame(2, $rateData['total']);
+        $this->assertSame(50.0, $rateData['rate']);
     }
 }

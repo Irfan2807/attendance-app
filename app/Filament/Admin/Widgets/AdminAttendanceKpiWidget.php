@@ -49,7 +49,7 @@ class AdminAttendanceKpiWidget extends ManagementAnalyticsStatsWidget
 
             Stat::make('Pending Approvals', (string) $metrics['pending']['total'])
                 ->description($metrics['pending']['older_than_24h'].' older than 24h')
-                ->color($metrics['pending']['older_than_24h'] > 0 ? 'danger' : 'warning')
+                ->color($metrics['pending']['older_than_24h'] > 0 ? 'danger' : ($metrics['pending']['total'] > 0 ? 'warning' : 'success'))
                 ->icon('heroicon-o-clock'),
 
             Stat::make('Overtime (30 Days)', AttendanceMetricsService::formatMinutes($metrics['month_overtime_minutes']))
@@ -64,7 +64,7 @@ class AdminAttendanceKpiWidget extends ManagementAnalyticsStatsWidget
                 ->icon('heroicon-o-map-pin'),
 
             Stat::make('Infractions (30 Days)', (string) $metrics['infractions'])
-                ->description('Top offender: '.$metrics['quality']['repeat_offender_name'])
+                ->description($metrics['infractions'] > 0 ? 'Top offender: '.$metrics['quality']['repeat_offender_name'] : 'No infractions recorded')
                 ->color($metrics['infractions'] > 0 ? 'warning' : 'success')
                 ->icon('heroicon-o-exclamation-triangle'),
         ];

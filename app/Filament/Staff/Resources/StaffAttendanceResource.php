@@ -25,10 +25,7 @@ class StaffAttendanceResource extends Resource
 
     public static function canViewAny(): bool
     {
-        // Both staff (3) and managers (2) can view
-        // Staff see only their own logs
-        // Managers see only their own logs here (all staff logs are in StaffAttendanceOverviewResource)
-        return Auth::user() && in_array(Auth::user()->role, [2, 3]);
+        return Auth::check();
     }
 
     public static function canCreate(): bool
@@ -38,14 +35,14 @@ class StaffAttendanceResource extends Resource
 
     public static function canEdit($record): bool
     {
-        // Only managers can edit (for approval notes, etc.)
-        return Auth::user() && Auth::user()->role === 2;
+        // Only managers and admins can edit (for approval notes, etc.)
+        return Auth::user()?->isManagerOrAdmin() ?? false;
     }
 
     public static function canDelete($record): bool
     {
-        // Only managers can delete attendance records
-        return Auth::user() && Auth::user()->role === 2;
+        // Only managers and admins can delete attendance records
+        return Auth::user()?->isManagerOrAdmin() ?? false;
     }
 
     public static function getEloquentQuery(): Builder
@@ -150,7 +147,7 @@ class StaffAttendanceResource extends Resource
                 Tables\Columns\TextColumn::make('clock_out_time')
                     ->label('Clock Out')
                     ->dateTime('H:i:s')
-                    ->formatStateUsing(fn($state) => $state ? $state->format('H:i:s') : 'Not clocked out')
+                    ->placeholder('Not clocked out')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('worked_minutes')
@@ -169,14 +166,16 @@ class StaffAttendanceResource extends Resource
                     ->badge()
                     ->color(fn (string $state) => $state === '0m' ? 'gray' : 'success'),
 
-                Tables\Columns\BadgeColumn::make('status')
-                    ->colors([
-                        'warning' => 'pending',
-                        'success' => 'approved',
-                        'danger' => 'rejected',
-                        'info' => 'completed',
-                    ])
-                    ->formatStateUsing(fn($state) => ucfirst($state)),
+                Tables\Columns\TextColumn::make('status')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'pending' => 'warning',
+                        'temporary' => 'info',
+                        'approved', 'completed' => 'success',
+                        'rejected' => 'danger',
+                        default => 'gray',
+                    })
+                    ->formatStateUsing(fn ($state) => ucfirst($state)),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Date')

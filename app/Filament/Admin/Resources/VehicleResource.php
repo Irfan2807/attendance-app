@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Filament\Staff\Resources;
+namespace App\Filament\Admin\Resources;
 
-use App\Filament\Staff\Resources\VehicleResource\Pages;
+use App\Filament\Admin\Resources\VehicleResource\Pages;
 use App\Models\Vehicle;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -22,25 +22,22 @@ class VehicleResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return Auth::check();
+        return Auth::user()?->isAdmin() ?? false;
     }
 
     public static function canCreate(): bool
     {
-        // Managers and Admins can create vehicles
-        return Auth::user()?->isManagerOrAdmin() ?? false;
+        return Auth::user()?->isAdmin() ?? false;
     }
 
     public static function canEdit($record): bool
     {
-        // Managers and Admins can edit vehicles
-        return Auth::user()?->isManagerOrAdmin() ?? false;
+        return Auth::user()?->isAdmin() ?? false;
     }
 
     public static function canDelete($record): bool
     {
-        // Managers and Admins can delete vehicles
-        return Auth::user()?->isManagerOrAdmin() ?? false;
+        return Auth::user()?->isAdmin() ?? false;
     }
 
     public static function form(Form $form): Form
@@ -115,18 +112,18 @@ class VehicleResource extends Resource
                 Tables\Columns\TextColumn::make('current_mileage')
                     ->label('Current Mileage')
                     ->sortable()
-                    ->formatStateUsing(fn($state) => number_format($state) . ' KM'),
+                    ->formatStateUsing(fn ($state) => number_format((float) $state) . ' KM'),
 
                 Tables\Columns\TextColumn::make('next_service_mileage')
                     ->label('Next Service')
                     ->sortable()
-                    ->formatStateUsing(fn($state) => number_format($state) . ' KM'),
+                    ->formatStateUsing(fn ($state) => number_format((float) $state) . ' KM'),
 
                 Tables\Columns\TextColumn::make('km_remaining')
                     ->label('KM Until Service')
-                    ->getStateUsing(fn($record) => $record->kmUntilService())
-                    ->formatStateUsing(fn($state) => number_format($state) . ' KM')
-                    ->color(fn($state) => match(true) {
+                    ->getStateUsing(fn ($record) => $record->kmUntilService())
+                    ->formatStateUsing(fn ($state) => number_format((float) $state) . ' KM')
+                    ->color(fn ($state) => match (true) {
                         $state <= 0 => 'danger',
                         $state <= 500 => 'warning',
                         default => 'success',
@@ -151,19 +148,21 @@ class VehicleResource extends Resource
 
                 Tables\Filters\Filter::make('service_due_soon')
                     ->label('Service Due Soon')
-                    ->query(fn($query) => $query->whereRaw('(next_service_mileage - current_mileage) <= 500')),
+                    ->query(fn ($query) => $query->whereRaw('(next_service_mileage - current_mileage) <= 500')),
 
                 Tables\Filters\Filter::make('service_overdue')
                     ->label('Service Overdue')
-                    ->query(fn($query) => $query->whereRaw('current_mileage >= next_service_mileage')),
+                    ->query(fn ($query) => $query->whereRaw('current_mileage >= next_service_mileage')),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make()
-                    ->visible(fn() => Auth::user()->role === 2),
+                Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
-                //
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
             ])
             ->defaultSort('numberplate');
     }
@@ -178,3 +177,4 @@ class VehicleResource extends Resource
         ];
     }
 }
+

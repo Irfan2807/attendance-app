@@ -28,7 +28,7 @@ class AdminAttendanceTrendsWidget extends ManagementAnalyticsChartWidget
                 'attendance_rate' => $attendanceRate['rates'],
                 'late_starts' => $lateStarts['counts'],
                 'overtime_hours' => $overtime['hours'],
-                'approval_turnaround' => $turnaround['minutes'],
+                'approval_turnaround' => $turnaround['hours'] ?? $turnaround['minutes'],
             ];
         });
 
@@ -56,7 +56,7 @@ class AdminAttendanceTrendsWidget extends ManagementAnalyticsChartWidget
                     'tension' => 0.3,
                 ],
                 [
-                    'label' => 'Avg Approval Minutes',
+                    'label' => 'Avg Approval (Hours)',
                     'data' => $metrics['approval_turnaround'],
                     'borderColor' => '#ef4444',
                     'backgroundColor' => 'rgba(239, 68, 68, 0.2)',

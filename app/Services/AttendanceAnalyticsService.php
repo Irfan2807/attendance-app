@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\Role;
 use App\Models\Attendance;
 use App\Models\AttendanceInfraction;
 use App\Models\Site;
@@ -27,8 +28,9 @@ class AttendanceAnalyticsService
 
     public static function attendanceRate(Carbon $start, Carbon $end): array
     {
-        $totalStaff = User::where('role', 3)->count();
+        $totalStaff = User::where('role', Role::Staff->value)->count();
         $presentStaff = self::staffAttendanceQuery()
+            ->where('status', '!=', 'rejected')
             ->whereBetween('clock_in_time', [$start, $end])
             ->distinct('user_id')
             ->count('user_id');
@@ -63,6 +65,7 @@ class AttendanceAnalyticsService
     public static function overtimeMinutes(Carbon $start, Carbon $end): int
     {
         return self::staffAttendanceQuery()
+            ->where('status', '!=', 'rejected')
             ->whereBetween('clock_in_time', [$start, $end])
             ->whereNotNull('clock_out_time')
             ->get(['clock_in_time', 'clock_out_time'])
@@ -127,13 +130,11 @@ class AttendanceAnalyticsService
         $rejectedCount = $decisions->where('status', 'rejected')->count();
         $decisionCount = $approvedCount + $rejectedCount;
 
-        $avgTurnaroundMinutes = $decisions->isNotEmpty()
-            ? round($decisions->avg(function (Attendance $attendance): float {
-                if (! $attendance->clock_in_time || ! $attendance->approved_at) {
-                    return 0;
-                }
+        $validTurnaroundRecords = $decisions->filter(fn (Attendance $a) => $a->clock_in_time && $a->approved_at);
 
-                return (float) $attendance->clock_in_time->diffInMinutes($attendance->approved_at);
+        $avgTurnaroundMinutes = $validTurnaroundRecords->isNotEmpty()
+            ? round($validTurnaroundRecords->avg(function (Attendance $attendance): float {
+                return (float) max(0, $attendance->clock_in_time->diffInMinutes($attendance->approved_at));
             }), 1)
             : 0.0;
 
@@ -151,41 +152,56 @@ class AttendanceAnalyticsService
     public static function approvalTurnaroundTrend(int $days, ?Carbon $reference = null): array
     {
         $labels = [];
-        $minutes = [];
+        $hours = [];
 
         foreach (self::operationalBuckets($days, $reference) as $bucket) {
             $labels[] = $bucket['label'];
             $metrics = self::approvalAnalytics($bucket['start'], $bucket['end']);
-            $minutes[] = $metrics['avg_turnaround_minutes'];
+            $hours[] = round($metrics['avg_turnaround_minutes'] / 60, 1);
         }
 
         return [
             'labels' => $labels,
-            'minutes' => $minutes,
+            'hours' => $hours,
+            'minutes' => array_map(fn ($h) => round($h * 60, 1), $hours),
         ];
     }
 
     public static function siteCoverage(Carbon $start, Carbon $end): array
     {
-        $siteStats = self::staffAttendanceQuery()
+        $activeSiteNames = Site::query()
+            ->where('is_active', true)
+            ->pluck('name')
+            ->filter()
+            ->values();
+
+        $totalActiveSites = $activeSiteNames->count();
+
+        $activeSitesCount = $totalActiveSites > 0
+            ? self::staffAttendanceQuery()
+                ->where('status', '!=', 'rejected')
+                ->whereBetween('clock_in_time', [$start, $end])
+                ->whereIn('site_name', $activeSiteNames)
+                ->distinct('site_name')
+                ->count('site_name')
+            : 0;
+
+        $coverage = $totalActiveSites > 0
+            ? min(100.0, round(($activeSitesCount / $totalActiveSites) * 100, 1))
+            : 0.0;
+
+        $topSite = self::staffAttendanceQuery()
+            ->where('status', '!=', 'rejected')
             ->whereBetween('clock_in_time', [$start, $end])
             ->whereNotNull('site_name')
             ->where('site_name', '!=', '')
             ->selectRaw('site_name, COUNT(*) as total')
             ->groupBy('site_name')
             ->orderByDesc('total')
-            ->get();
-
-        $activeSites = $siteStats->count();
-        $totalActiveSites = Site::query()->where('is_active', true)->count();
-        $coverage = $totalActiveSites > 0
-            ? round(($activeSites / $totalActiveSites) * 100, 1)
-            : 0.0;
-
-        $topSite = $siteStats->first();
+            ->first();
 
         return [
-            'active_sites' => $activeSites,
+            'active_sites' => $activeSitesCount,
             'total_active_sites' => $totalActiveSites,
             'coverage_rate' => $coverage,
             'top_site_name' => $topSite->site_name ?? '—',
@@ -206,8 +222,12 @@ class AttendanceAnalyticsService
             })
             ->count();
 
-        $autoClosedStale = (clone $base)
-            ->where('verification_notes', 'like', '%Auto-closed stale shift%')
+        $autoClosedStale = AttendanceInfraction::query()
+            ->whereBetween('created_at', [$start, $end])
+            ->where(function (Builder $query): void {
+                $query->where('infraction_type', 'like', 'auto_clock_out%')
+                    ->orWhere('infraction_type', 'forgot_clock_out');
+            })
             ->count();
 
         $repeatedTemporaryUsers = (clone $base)
@@ -253,7 +273,7 @@ class AttendanceAnalyticsService
 
     private static function staffAttendanceQuery(): Builder
     {
-        return Attendance::query()->whereHas('user', fn (Builder $query) => $query->where('role', 3));
+        return Attendance::query()->whereHas('user', fn (Builder $query) => $query->where('role', Role::Staff->value));
     }
 
     private static function operationalBuckets(int $days, ?Carbon $reference = null): array
@@ -278,19 +298,35 @@ class AttendanceAnalyticsService
     private static function lateStartsCount(Carbon $start, Carbon $end): int
     {
         $graceMinutes = (int) config('attendance.late_grace_minutes', 15);
-        $shiftStartMinutes = ((int) config('attendance.day_shift_starts_at', 8) * 60) + $graceMinutes;
+        $dayStartHour = (int) config('attendance.day_shift_starts_at', 8);
+        $nightStartHour = (int) config('attendance.night_shift_starts_at', 17);
+
+        $dayCutoffMinutes = ($dayStartHour * 60) + $graceMinutes;
+        $nightCutoffMinutes = ($nightStartHour * 60) + $graceMinutes;
 
         return self::staffAttendanceQuery()
+            ->where('status', '!=', 'rejected')
             ->whereBetween('clock_in_time', [$start, $end])
             ->get(['clock_in_time'])
-            ->filter(function (Attendance $attendance) use ($shiftStartMinutes): bool {
+            ->filter(function (Attendance $attendance) use ($dayCutoffMinutes, $nightCutoffMinutes): bool {
                 if (! $attendance->clock_in_time) {
                     return false;
                 }
 
-                $clockInMinutes = ($attendance->clock_in_time->hour * 60) + $attendance->clock_in_time->minute;
+                $hour = $attendance->clock_in_time->hour;
+                $clockInMinutes = ($hour * 60) + $attendance->clock_in_time->minute;
 
-                return $clockInMinutes > $shiftStartMinutes;
+                // Day shift window (05:00 to 14:59)
+                if ($hour >= 5 && $hour < 15) {
+                    return $clockInMinutes > $dayCutoffMinutes;
+                }
+
+                // Night shift window (15:00 to 23:59)
+                if ($hour >= 15) {
+                    return $clockInMinutes > $nightCutoffMinutes;
+                }
+
+                return false;
             })
             ->count();
     }

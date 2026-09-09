@@ -11,6 +11,13 @@ class MileageLog extends Model
     use HasFactory;
 
     protected $guarded = [];
+    protected $fillable = [
+        'vehicle_id',
+        'user_id',
+        'mileage_reading',
+        'recorded_at',
+        'notes',
+    ];
 
     protected $casts = [
         'recorded_at' => 'datetime',

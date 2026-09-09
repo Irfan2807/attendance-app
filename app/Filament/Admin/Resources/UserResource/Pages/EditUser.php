@@ -22,7 +22,7 @@ class EditUser extends EditRecord
     protected function mutateFormDataBeforeSave(array $data): array
     {
         // Prevent non-admins from changing the role via the edit form
-        if (! Auth::user() || Auth::user()->role !== 1) {
+        if (! Auth::user()?->isAdmin()) {
             // Ensure the role remains unchanged by removing it from incoming data
             unset($data['role']);
         }

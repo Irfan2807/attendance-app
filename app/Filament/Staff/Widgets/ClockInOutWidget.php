@@ -53,6 +53,8 @@ class ClockInOutWidget extends Widget
 
     public ?string $clientIp = null;
 
+    public bool $isManualLocation = false;
+
     public function mount(): void
     {
         $this->loadAttendanceState();
@@ -182,6 +184,7 @@ class ClockInOutWidget extends Widget
     {
         $this->latitude = $latitude;
         $this->longitude = $longitude;
+        $this->isManualLocation = false;
         $this->locationError = null;
     }
 
@@ -190,13 +193,14 @@ class ClockInOutWidget extends Widget
         if ($this->manualLatitude && $this->manualLongitude) {
             $this->latitude = $this->manualLatitude;
             $this->longitude = $this->manualLongitude;
+            $this->isManualLocation = true;
             $this->locationError = null;
             $this->showManualInput = false;
 
             $this->dispatch('notify',
                 title: '✓ Manual Coordinates Set',
-                message: "Lat: {$this->latitude}, Lon: {$this->longitude}",
-                status: 'success'
+                message: "Lat: {$this->latitude}, Lon: {$this->longitude} (Requires Manager Approval)",
+                status: 'warning'
             );
         }
     }
@@ -258,9 +262,9 @@ class ClockInOutWidget extends Widget
             // Step 1: Check IP Address
             $ipVerified = AttendanceVerificationService::verifyOfficeIp($clientIp);
 
-            // Step 2: Check Location (if IP not verified)
+            // Step 2: Check Location (if IP not verified and not manual override)
             $locationVerified = null;
-            if (! $ipVerified && ($this->latitude && $this->longitude)) {
+            if (! $ipVerified && ! $this->isManualLocation && ($this->latitude && $this->longitude)) {
                 $locationVerified = AttendanceVerificationService::verifyOfficeLocation(
                     $this->latitude,
                     $this->longitude
@@ -271,8 +275,14 @@ class ClockInOutWidget extends Widget
             $status = 'pending'; // Default: requires approval
             $verificationNotes = [];
 
-            // If this is an additional shift (already completed one today), always require approval
-            if ($completedShift) {
+            if ($this->isManualLocation) {
+                $status = 'pending';
+                $verificationNotes[] = 'Manual Coordinate Override - Requires manager approval';
+                $verificationNotes[] = "IP: {$clientIp}";
+                if ($this->latitude && $this->longitude) {
+                    $verificationNotes[] = "Manual Location: {$this->latitude}, {$this->longitude}";
+                }
+            } elseif ($completedShift) {
                 $status = 'pending';
                 $verificationNotes[] = 'Additional shift - Requires manager approval';
                 $verificationNotes[] = "Previous shift: {$completedShift->clock_in_time->format('H:i')} - {$completedShift->clock_out_time->format('H:i')}";
@@ -285,7 +295,7 @@ class ClockInOutWidget extends Widget
             } else {
                 // Step 3: Check Group Verification (5+ staff within 50m in last 2 hours)
                 $groupVerified = false;
-                if ($this->latitude && $this->longitude) {
+                if (! $this->isManualLocation && $this->latitude && $this->longitude) {
                     $groupVerified = AttendanceVerificationService::verifyGroupClockIn(
                         $this->latitude,
                         $this->longitude,
@@ -364,9 +374,11 @@ class ClockInOutWidget extends Widget
                     status: 'success'
                 );
             } else {
-                $notificationMessage = $completedShift
-                    ? 'Additional shift requires manager approval'
-                    : 'Your clock-in requires manager verification';
+                $notificationMessage = $this->isManualLocation
+                    ? 'Manual coordinates override requires manager verification'
+                    : ($completedShift
+                        ? 'Additional shift requires manager approval'
+                        : 'Your clock-in requires manager verification');
 
                 $this->dispatch('notify',
                     title: '⏳ Pending Manager Approval',

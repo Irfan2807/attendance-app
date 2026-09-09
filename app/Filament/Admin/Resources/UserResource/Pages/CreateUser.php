@@ -13,8 +13,8 @@ class CreateUser extends CreateRecord
 
     public function mount(): void
     {
-        // Only allow Admin (1) and Manager (2) to open the create page
-        if (! Auth::user() || ! in_array(Auth::user()->role, [1, 2])) {
+        // Only allow Admin and Manager to open the create page
+        if (! Auth::user()?->isManagerOrAdmin()) {
             abort(403);
         }
 
@@ -23,9 +23,9 @@ class CreateUser extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        // If current user is not admin, force created user's role to Staff (3)
-        if (! Auth::user() || Auth::user()->role !== 1) {
-            $data['role'] = 3;
+        // If current user is not admin, force created user's role to Staff
+        if (! Auth::user()?->isAdmin()) {
+            $data['role'] = \App\Enums\Role::Staff->value;
         }
 
         return $data;

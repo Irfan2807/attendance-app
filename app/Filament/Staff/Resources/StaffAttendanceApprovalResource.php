@@ -24,8 +24,8 @@ class StaffAttendanceApprovalResource extends Resource
 
     public static function canViewAny(): bool
     {
-        // Only Managers (role 2) can approve, not staff (role 3)
-        return Auth::user() && Auth::user()->role === 2;
+        // Managers and Admins can approve, not staff
+        return Auth::user()?->isManagerOrAdmin() ?? false;
     }
 
     public static function canCreate(): bool
@@ -134,12 +134,14 @@ class StaffAttendanceApprovalResource extends Resource
                     ->badge()
                     ->color(fn ($state) => $state === '—' ? 'gray' : 'success'),
 
-                Tables\Columns\BadgeColumn::make('status')
-                    ->colors([
-                        'warning' => 'pending',
-                        'success' => 'approved',
-                        'danger' => 'rejected',
-                    ]),
+                Tables\Columns\TextColumn::make('status')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'pending', 'temporary' => 'warning',
+                        'approved' => 'success',
+                        'rejected' => 'danger',
+                        default => 'gray',
+                    }),
 
                 Tables\Columns\TextColumn::make('verification_notes')
                     ->label('Notes')

@@ -10,3 +10,8 @@ Artisan::command('inspire', function () {
 
 // Auto clock-out safety net: enforce max 10 hours per shift and create warnings
 Schedule::command('attendance:auto-clock-out')->everyTenMinutes();
+// Auto clock-out safety net: enforce max shift hours and create warnings
+Schedule::command('attendance:auto-clock-out')
+    ->everyTenMinutes()
+    ->withoutOverlapping()
+    ->runInBackground();

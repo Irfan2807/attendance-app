@@ -15,11 +15,13 @@ class ListAttendances extends ListRecords
         return [
             Actions\Action::make('export')
                 ->label('Export CSV')
-                ->url(route('attendance.export')),
+                ->url(route('attendance.export'))
+                ->openUrlInNewTab(),
 
             Actions\Action::make('print')
                 ->label('Printable')
-                ->url(route('attendance.print')),
+                ->url(route('attendance.print'))
+                ->openUrlInNewTab(),
         ];
     }
 }

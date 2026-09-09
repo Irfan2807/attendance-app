@@ -7,7 +7,7 @@ use App\Http\Controllers\AuthController;
 
 // --- UNIFIED LOGIN ---
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
-Route::post('/login', [AuthController::class, 'login'])->name('login.post');
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1')->name('login.post');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // --- PUBLIC PAGES (Accessible by everyone) ---
@@ -22,6 +22,18 @@ Route::get('/services', function () {
 Route::get('/contact', function () {
     return view('contact');
 })->name('contact');
+
+Route::post('/contact', function (\Illuminate\Http\Request $request) {
+    $request->validate([
+        'name' => ['required', 'string', 'max:255'],
+        'email' => ['required', 'email', 'max:255'],
+        'phone' => ['nullable', 'string', 'max:50'],
+        'service' => ['nullable', 'string', 'max:100'],
+        'message' => ['required', 'string', 'max:2000'],
+    ]);
+
+    return back()->with('success', 'Thank you! Your enquiry has been received. Our engineering team will get back to you shortly.');
+})->name('contact.submit');
 
 
 // --- STAFF PAGES (Protected) ---

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Staff\Resources;
 
+use App\Enums\Role;
 use App\Filament\Staff\Resources\StaffUserResource\Pages;
 use App\Models\Attendance;
 use App\Models\User;
@@ -30,17 +31,21 @@ class StaffUserResource extends Resource
     public static function canViewAny(): bool
     {
         return Auth::user() && Auth::user()->role === 2;
+        return Auth::user()?->isManagerOrAdmin() ?? false;
     }
 
     public static function canCreate(): bool
     {
         return Auth::user() && Auth::user()->role === 2;
+        return Auth::user()?->isManagerOrAdmin() ?? false;
     }
 
     public static function getEloquentQuery(): Builder
     {
         // Managers may only view and manage role-3 (Staff) users.
         return parent::getEloquentQuery()->where('role', 3);
+        // Managers view role-3 (Staff) users.
+        return parent::getEloquentQuery()->where('role', Role::Staff->value);
     }
 
     public static function form(Form $form): Form
@@ -66,19 +71,12 @@ class StaffUserResource extends Resource
                     ]),
 
                 Forms\Components\Select::make('role')
-                    ->options(function () {
-                        if (Auth::user()?->role === 1) {
-                            return [
-                                1 => 'Super Admin',
-                                2 => 'Manager',
-                                3 => 'Staff',
-                            ];
-                        }
-                        return [
-                            3 => 'Staff',
-                        ];
-                    })
+                    ->options([
+                        3 => 'Staff',
+                        Role::Staff->value => Role::Staff->label(),
+                    ])
                     ->default(3)
+                    ->default(Role::Staff->value)
                     ->required()
                     ->dehydrated(),
 
@@ -168,10 +166,11 @@ class StaffUserResource extends Resource
 
                     Infolists\Components\TextEntry::make('last_attendance')
                         ->label('Last Attendance')
-                        ->state(fn (User $record): string => $record->attendances()
+                        ->state(fn (User $record): ?string => $record->attendances()
                             ->latest('clock_in_time')
-                            ->value('clock_in_time') ?? 'No records')
-                        ->dateTime('d M Y h:i A'),
+                            ->value('clock_in_time'))
+                        ->dateTime('d M Y h:i A')
+                        ->placeholder('No records'),
 
                     Infolists\Components\TextEntry::make('incomplete_clock_out_count')
                         ->label('Incomplete Clock-Outs')

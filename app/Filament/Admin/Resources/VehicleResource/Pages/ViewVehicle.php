@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Filament\Staff\Resources\VehicleResource\Pages;
+namespace App\Filament\Admin\Resources\VehicleResource\Pages;
 
-use App\Filament\Staff\Resources\VehicleResource;
+use App\Filament\Admin\Resources\VehicleResource;
 use Filament\Actions;
 use Filament\Resources\Pages\ViewRecord;
 
@@ -13,8 +13,8 @@ class ViewVehicle extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\EditAction::make()
-                ->visible(fn () => \Illuminate\Support\Facades\Auth::user()?->isManagerOrAdmin()),
+            Actions\EditAction::make(),
         ];
     }
 }
+

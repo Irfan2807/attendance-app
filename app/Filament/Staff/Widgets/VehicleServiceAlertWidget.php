@@ -17,8 +17,8 @@ class VehicleServiceAlertWidget extends BaseWidget
 
     public static function canView(): bool
     {
-        // Only show to managers
-        return Auth::user() && Auth::user()->role === 2;
+        // Only show to managers and admins
+        return Auth::user() && Auth::user()->isManagerOrAdmin();
     }
 
     protected function getTableHeading(): ?string
@@ -53,13 +53,15 @@ class VehicleServiceAlertWidget extends BaseWidget
                     ->label('Service Due')
                     ->formatStateUsing(fn($state) => number_format($state) . ' KM'),
 
-                Tables\Columns\BadgeColumn::make('status')
+                Tables\Columns\TextColumn::make('status')
                     ->label('Status')
                     ->getStateUsing(fn($record) => $record->isServiceOverdue() ? 'OVERDUE' : 'DUE SOON')
-                    ->colors([
-                        'danger' => 'OVERDUE',
-                        'warning' => 'DUE SOON',
-                    ]),
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'OVERDUE' => 'danger',
+                        'DUE SOON' => 'warning',
+                        default => 'gray',
+                    }),
 
                 Tables\Columns\TextColumn::make('km_remaining')
                     ->label('KM Remaining')

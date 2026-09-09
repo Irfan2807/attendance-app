@@ -12,7 +12,7 @@ class AttendanceExportController extends Controller
 {
     public function exportCsv(Request $request)
     {
-        if (! Auth::user() || ! in_array(Auth::user()->role, [1, 2])) {
+        if (! Auth::user()?->isManagerOrAdmin()) {
             abort(403);
         }
 
@@ -35,8 +35,8 @@ class AttendanceExportController extends Controller
 
                 fputcsv($handle, [
                     $a->id,
-                    $a->user?->name,
-                    $a->site_name,
+                    $this->sanitizeCsvField($a->user?->name),
+                    $this->sanitizeCsvField($a->site_name),
                     $a->latitude,
                     $a->longitude,
                     $a->status,
@@ -54,7 +54,7 @@ class AttendanceExportController extends Controller
 
     public function printView()
     {
-        if (! Auth::user() || ! in_array(Auth::user()->role, [1, 2])) {
+        if (! Auth::user()?->isManagerOrAdmin()) {
             abort(403);
         }
 
@@ -98,5 +98,19 @@ class AttendanceExportController extends Controller
                 $request->filled('until'),
                 fn (Builder $query) => $query->whereDate('clock_in_time', '<=', $request->date('until'))
             );
+    }
+
+    private function sanitizeCsvField(?string $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return $value;
+        }
+
+        // Prevent CSV formula injection (CWE-1236)
+        if (preg_match('/^[=+\-@\t\r]/', $value)) {
+            return "'".$value;
+        }
+
+        return $value;
     }
 }

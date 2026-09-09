@@ -13,7 +13,7 @@ class ListVehicles extends ListRecords
     {
         return [
             \Filament\Actions\CreateAction::make()
-                ->visible(fn() => \Illuminate\Support\Facades\Auth::user()->role === 2),
+                ->visible(fn () => \Illuminate\Support\Facades\Auth::user()?->isManagerOrAdmin()),
         ];
     }
 }

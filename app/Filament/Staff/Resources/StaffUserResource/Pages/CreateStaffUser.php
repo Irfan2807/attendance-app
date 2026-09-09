@@ -12,7 +12,7 @@ class CreateStaffUser extends CreateRecord
 
     public function mount(): void
     {
-        if (! Auth::user() || ! in_array(Auth::user()->role, [1, 2])) {
+        if (! Auth::user()?->isManagerOrAdmin()) {
             abort(403);
         }
 
@@ -21,8 +21,8 @@ class CreateStaffUser extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        // Force created user to be Staff (3) regardless of input
-        $data['role'] = 3;
+        // Force created user to be Staff regardless of input
+        $data['role'] = \App\Enums\Role::Staff->value;
 
         return $data;
     }

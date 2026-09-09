@@ -102,4 +102,46 @@ class AttendanceExportFilterTest extends TestCase
         $this->assertStringNotContainsString('Dana', $csv);
         $this->assertStringNotContainsString('Site Beta', $csv);
     }
+
+    public function test_print_view_renders_successfully_for_admin_and_manager(): void
+    {
+        $admin = User::factory()->create(['role' => 1]);
+        $manager = User::factory()->create(['role' => 2]);
+        $staff = User::factory()->create(['role' => 3, 'name' => 'Test Employee']);
+
+        Attendance::create([
+            'user_id' => $staff->id,
+            'site_name' => 'HQ Site',
+            'latitude' => 3.0,
+            'longitude' => 101.0,
+            'status' => 'approved',
+            'clock_in_time' => Carbon::parse('2026-05-08 09:00:00'),
+            'clock_out_time' => Carbon::parse('2026-05-08 17:00:00'),
+        ]);
+
+        // Admin access
+        $responseAdmin = $this->actingAs($admin)->get(route('attendance.print'));
+        $responseAdmin->assertOk();
+        $responseAdmin->assertSee('Attendance Report');
+        $responseAdmin->assertSee('Test Employee');
+        $responseAdmin->assertSee('HQ Site');
+
+        // Manager access
+        $responseManager = $this->actingAs($manager)->get(route('attendance.print'));
+        $responseManager->assertOk();
+        $responseManager->assertSee('Attendance Report');
+    }
+
+    public function test_print_view_forbidden_for_staff_and_redirects_guest(): void
+    {
+        $staff = User::factory()->create(['role' => 3]);
+
+        // Guest is redirected
+        $guestResponse = $this->get(route('attendance.print'));
+        $guestResponse->assertRedirect('/login');
+
+        // Staff is forbidden (403)
+        $staffResponse = $this->actingAs($staff)->get(route('attendance.print'));
+        $staffResponse->assertForbidden();
+    }
 }

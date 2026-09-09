@@ -26,20 +26,33 @@ class AdminApprovalAnalyticsWidget extends ManagementAnalyticsStatsWidget
             ];
         });
 
+        $hasDecisions = ($stats['approval']['decision_count'] ?? 0) > 0;
+
         return [
-            Stat::make('Avg Time to Decision', AttendanceMetricsService::formatMinutes((int) $stats['approval']['avg_turnaround_minutes']))
+            Stat::make(
+                'Avg Time to Decision',
+                $hasDecisions
+                    ? AttendanceMetricsService::formatMinutes((int) $stats['approval']['avg_turnaround_minutes'])
+                    : 'N/A'
+            )
                 ->description('Based on approved/rejected records in last 30 days')
-                ->color($stats['approval']['avg_turnaround_minutes'] > 720 ? 'danger' : 'success')
+                ->color($hasDecisions ? ($stats['approval']['avg_turnaround_minutes'] > 720 ? 'danger' : 'success') : 'gray')
                 ->icon('heroicon-o-bolt'),
 
-            Stat::make('Approval Rate', $stats['approval']['approval_rate'].'%')
+            Stat::make(
+                'Approval Rate',
+                $hasDecisions ? $stats['approval']['approval_rate'].'%' : 'N/A'
+            )
                 ->description($stats['approval']['approved_count'].' approvals / '.$stats['approval']['decision_count'].' decisions')
-                ->color($stats['approval']['approval_rate'] >= 80 ? 'success' : 'warning')
+                ->color($hasDecisions ? ($stats['approval']['approval_rate'] >= 80 ? 'success' : 'warning') : 'gray')
                 ->icon('heroicon-o-check-badge'),
 
-            Stat::make('Rejection Rate', $stats['approval']['rejection_rate'].'%')
+            Stat::make(
+                'Rejection Rate',
+                $hasDecisions ? $stats['approval']['rejection_rate'].'%' : 'N/A'
+            )
                 ->description($stats['approval']['rejected_count'].' rejected')
-                ->color($stats['approval']['rejection_rate'] > 20 ? 'danger' : 'gray')
+                ->color($hasDecisions ? ($stats['approval']['rejection_rate'] > 20 ? 'danger' : 'gray') : 'gray')
                 ->icon('heroicon-o-x-circle'),
 
             Stat::make('Pending Age Buckets', '>24h: '.$stats['pending']['older_than_24h'])

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Staff\Widgets;
 
+use App\Enums\Role;
 use App\Models\Attendance;
 use App\Models\User;
 use App\Services\AttendanceWindowService;
@@ -18,7 +19,7 @@ class StaffAttendanceOverviewStatsWidget extends BaseWidget
 {
     public static function canView(): bool
     {
-        return Auth::check() && Auth::user()->role === 2;
+        return Auth::check() && Auth::user()->isManagerOrAdmin();
     }
 
     protected function getStats(): array
@@ -30,10 +31,11 @@ class StaffAttendanceOverviewStatsWidget extends BaseWidget
             $thisMonth = Carbon::now()->startOfMonth();
 
             // Total staff (excluding managers)
-            $totalStaff = User::where('role', 3)->count();
+            $totalStaff = User::where('role', Role::Staff->value)->count();
 
             // Staff who clocked in today
-            $staffTodayCount = Attendance::where('user_id', '!=', Auth::id())
+            $staffTodayCount = Attendance::whereHas('user', fn ($q) => $q->where('role', Role::Staff->value))
+                ->where('status', '!=', 'rejected')
                 ->whereBetween('clock_in_time', [$todayStart, $todayEnd])
                 ->select('user_id')
                 ->distinct()
@@ -43,7 +45,8 @@ class StaffAttendanceOverviewStatsWidget extends BaseWidget
             $attendanceRateToday = $totalStaff > 0 ? round(($staffTodayCount / $totalStaff) * 100) : 0;
 
             // Team total hours this month, fully aggregated in SQL.
-            $teamTotalMinutesQuery = Attendance::where('user_id', '!=', Auth::id())
+            $teamTotalMinutesQuery = Attendance::whereHas('user', fn ($q) => $q->where('role', Role::Staff->value))
+                ->where('status', '!=', 'rejected')
                 ->whereBetween('clock_in_time', [$thisMonth, Carbon::now()])
                 ->whereNotNull('clock_out_time');
 

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Resources;
 
+use App\Enums\Role;
 use App\Filament\Admin\Resources\UserResource\Pages;
 use App\Models\Attendance;
 use App\Models\User;
@@ -25,17 +26,16 @@ class UserResource extends Resource
     
     protected static ?string $navigationLabel = 'Staff Management';
 
-    // 1. Restrict access: Only Admins (1) and Managers (2) can see this page.
+    // 1. Restrict access: Only Admins and Managers can see this page.
     public static function canViewAny(): bool
     {
-        // Safe check: If no user (null), return false immediately.
-        return Auth::user() && in_array(Auth::user()->role, [1, 2]);
+        return Auth::user()?->isManagerOrAdmin() ?? false;
     }
 
-    // 2. Creation: Only Admins (1) and Managers (2) can create.
+    // 2. Creation: Only Admins and Managers can create.
     public static function canCreate(): bool
     {
-        return Auth::user() && in_array(Auth::user()->role, [1, 2]);
+        return Auth::user()?->isManagerOrAdmin() ?? false;
     }
 
     public static function form(Form $form): Form
@@ -63,20 +63,15 @@ class UserResource extends Resource
                 // 3. Smart Role Selection
                 Forms\Components\Select::make('role')
                     ->options(function () {
-                        // usage of '?->' ensures we don't crash if user is somehow null
-                        if (Auth::user()?->role === 1) {
-                            return [
-                                1 => 'Super Admin',
-                                2 => 'Manager',
-                                3 => 'Staff',
-                            ];
+                        if (Auth::user()?->isAdmin()) {
+                            return Role::options();
                         }
-                        // Default for Managers (or if logic fails safe)
+
                         return [
-                            3 => 'Staff',
+                            Role::Staff->value => Role::Staff->label(),
                         ];
                     })
-                    ->default(3)
+                    ->default(Role::Staff->value)
                     ->required()
                     ->dehydrated(),
 
@@ -167,10 +162,11 @@ class UserResource extends Resource
 
                     Infolists\Components\TextEntry::make('last_attendance')
                         ->label('Last Attendance')
-                        ->state(fn (User $record): string => $record->attendances()
+                        ->state(fn (User $record): ?string => $record->attendances()
                             ->latest('clock_in_time')
-                            ->value('clock_in_time') ?? 'No records')
-                        ->dateTime('d M Y h:i A'),
+                            ->value('clock_in_time'))
+                        ->dateTime('d M Y h:i A')
+                        ->placeholder('No records'),
 
                     Infolists\Components\TextEntry::make('incomplete_clock_out_count')
                         ->label('Incomplete Clock-Outs')

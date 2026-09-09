@@ -69,6 +69,7 @@ class AutoClockOutSafetyNetTest extends TestCase
         $attendance->refresh();
         $this->assertNotNull($attendance->clock_out_time);
         $this->assertSame('temporary', $attendance->status);
+        $this->assertStringContainsString('Auto-closed stale shift', (string) $attendance->verification_notes);
 
         Carbon::setTestNow();
     }

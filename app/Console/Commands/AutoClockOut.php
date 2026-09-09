@@ -26,10 +26,15 @@ class AutoClockOut extends Command
 
         foreach ($longRunning as $attendance) {
             DB::transaction(function () use ($attendance, $now) {
+                $existingNotes = trim((string) $attendance->verification_notes);
+                $autoNote = 'Auto-closed stale shift after max shift duration';
+                $updatedNotes = $existingNotes !== '' ? $existingNotes . ' | ' . $autoNote : $autoNote;
+
                 // Auto clock-out
                 $attendance->update([
                     'clock_out_time' => $now,
                     'status' => 'temporary', // requires approval
+                    'verification_notes' => $updatedNotes,
                 ]);
 
                 // Create infraction

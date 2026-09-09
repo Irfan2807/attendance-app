@@ -25,8 +25,8 @@ class StaffAttendanceOverviewResource extends Resource
 
     public static function canViewAny(): bool
     {
-        // Only Managers (role 2) can view staff overview
-        return Auth::user() && Auth::user()->role === 2;
+        // Managers and Admins can view staff overview
+        return Auth::user()?->isManagerOrAdmin() ?? false;
     }
 
     public static function canCreate(): bool
@@ -36,13 +36,13 @@ class StaffAttendanceOverviewResource extends Resource
 
     public static function canEdit($record): bool
     {
-        // Managers can edit approval notes
-        return Auth::user() && Auth::user()->role === 2;
+        // Managers and Admins can edit approval notes
+        return Auth::user()?->isManagerOrAdmin() ?? false;
     }
 
     public static function canDelete($record): bool
     {
-        return Auth::user() && Auth::user()->role === 2;
+        return Auth::user()?->isManagerOrAdmin() ?? false;
     }
 
     public static function getEloquentQuery(): Builder
@@ -149,7 +149,7 @@ class StaffAttendanceOverviewResource extends Resource
                 Tables\Columns\TextColumn::make('clock_out_time')
                     ->label('Clock Out')
                     ->dateTime('H:i')
-                    ->formatStateUsing(fn($state) => $state ? $state->format('H:i') : 'Active'),
+                    ->placeholder('Active'),
 
                 Tables\Columns\TextColumn::make('hours_worked')
                     ->label('Duration')
@@ -167,21 +167,23 @@ class StaffAttendanceOverviewResource extends Resource
                     ->badge()
                     ->color(fn (string $state) => $state === '0m' ? 'gray' : 'success'),
 
-                Tables\Columns\BadgeColumn::make('status')
+                Tables\Columns\TextColumn::make('status')
                     ->label('Status')
-                    ->colors([
-                        'warning' => 'pending',
-                        'info' => 'temporary',
-                        'success' => fn ($state) => in_array($state, ['approved', 'completed']),
-                        'danger' => 'rejected',
-                    ])
-                    ->formatStateUsing(fn($state) => ucfirst($state)),
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'pending' => 'warning',
+                        'temporary' => 'info',
+                        'approved', 'completed' => 'success',
+                        'rejected' => 'danger',
+                        default => 'gray',
+                    })
+                    ->formatStateUsing(fn ($state) => ucfirst($state)),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
                     ->options([
                         'pending' => 'Pending Approval',
-                        'temporary' => 'Awaiting Clock Out',
+                        'temporary' => 'Temporary (Clocked Out)',
                         'approved' => 'Approved',
                         'rejected' => 'Rejected',
                         'completed' => 'Completed',

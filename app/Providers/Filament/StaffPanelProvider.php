@@ -2,13 +2,7 @@
 
 namespace App\Providers\Filament;
 
-use App\Filament\Admin\Widgets\AdminApprovalAnalyticsWidget;
-use App\Filament\Admin\Widgets\AdminAttendanceKpiWidget;
-use App\Filament\Admin\Widgets\AdminAttendanceTrendsWidget;
-use App\Filament\Admin\Widgets\AdminDataQualityAnalyticsWidget;
 use App\Filament\Staff\Pages\Dashboard;
-use App\Filament\Staff\Widgets\ClockInDetailsWidget;
-use App\Filament\Staff\Widgets\ClockInOutWidget;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
@@ -40,14 +34,6 @@ class StaffPanelProvider extends PanelProvider
                 Dashboard::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Staff/Widgets'), for: 'App\\Filament\\Staff\\Widgets')
-            ->widgets([
-                AdminAttendanceKpiWidget::class,
-                AdminAttendanceTrendsWidget::class,
-                AdminApprovalAnalyticsWidget::class,
-                AdminDataQualityAnalyticsWidget::class,
-                ClockInOutWidget::class,
-                ClockInDetailsWidget::class,
-            ])
             ->navigationGroups([
                 NavigationGroup::make('My Shift'),
                 NavigationGroup::make('Management'),

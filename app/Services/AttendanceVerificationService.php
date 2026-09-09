@@ -43,11 +43,26 @@ class AttendanceVerificationService
         }
 
         $sites = Site::where('is_active', true)->get();
+        $lat = (float) $latitude;
+        $lon = (float) $longitude;
+
+        // Bounding-box pre-filtering in SQL before performing in-memory Haversine calculations:
+        // 1 degree latitude ~= 111,000 meters.
+        $searchRadius = max(1000, ($radiusMeters ?? 100) * 2);
+        $latDelta = $searchRadius / 111000.0;
+        $lonDelta = $latDelta / max(0.01, cos(deg2rad($lat)));
+
+        $sites = Site::where('is_active', true)
+            ->whereBetween('latitude', [$lat - $latDelta, $lat + $latDelta])
+            ->whereBetween('longitude', [$lon - $lonDelta, $lon + $lonDelta])
+            ->get();
 
         foreach ($sites as $site) {
             $distance = self::haversineDistance(
                 $latitude,
                 $longitude,
+                $lat,
+                $lon,
                 $site->latitude,
                 $site->longitude
             );
@@ -66,7 +81,7 @@ class AttendanceVerificationService
      * Calculate distance between two coordinates using Haversine formula
      * Returns distance in meters
      */
-    private static function haversineDistance($lat1, $lon1, $lat2, $lon2): float
+    public static function haversineDistance($lat1, $lon1, $lat2, $lon2): float
     {
         $earthRadius = 6371000; // Earth radius in meters
 

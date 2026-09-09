@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Filament\Staff\Resources\MileageLogResource\Pages;
+namespace App\Filament\Admin\Resources\MileageLogResource\Pages;
 
-use App\Filament\Staff\Resources\MileageLogResource;
+use App\Filament\Admin\Resources\MileageLogResource;
 use App\Models\Vehicle;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
@@ -14,14 +14,13 @@ class EditMileageLog extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make()
-                ->visible(fn () => \Illuminate\Support\Facades\Auth::user()?->isManagerOrAdmin()),
+            Actions\ViewAction::make(),
+            Actions\DeleteAction::make(),
         ];
     }
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        // Update vehicle's current mileage if changed
         if (isset($data['vehicle_id']) && isset($data['mileage_reading'])) {
             $vehicle = Vehicle::find($data['vehicle_id']);
             if ($vehicle && $data['mileage_reading'] > $vehicle->current_mileage) {
@@ -37,3 +36,4 @@ class EditMileageLog extends EditRecord
         return $this->getResource()::getUrl('index');
     }
 }
+

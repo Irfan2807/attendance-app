@@ -78,13 +78,15 @@ class AttendanceResource extends Resource
                     ->sortable()
                     ->searchable(),
 
-                Tables\Columns\BadgeColumn::make('status')
-                    ->colors([
-                        'success' => 'approved',
-                        'info' => 'completed',
-                        'warning' => ['pending', 'temporary'],
-                        'danger' => 'rejected',
-                    ])
+                Tables\Columns\TextColumn::make('status')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'approved' => 'success',
+                        'completed' => 'info',
+                        'pending', 'temporary' => 'warning',
+                        'rejected' => 'danger',
+                        default => 'gray',
+                    })
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('site_name')

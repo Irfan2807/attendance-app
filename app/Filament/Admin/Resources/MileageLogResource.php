@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Filament\Staff\Resources;
+namespace App\Filament\Admin\Resources;
 
-use App\Filament\Staff\Resources\MileageLogResource\Pages;
+use App\Filament\Admin\Resources\MileageLogResource\Pages;
 use App\Models\MileageLog;
 use App\Models\Vehicle;
 use Filament\Forms;
@@ -10,7 +10,6 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 
 class MileageLogResource extends Resource
@@ -24,34 +23,22 @@ class MileageLogResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return Auth::check();
+        return Auth::user()?->isAdmin() ?? false;
     }
 
     public static function canCreate(): bool
     {
-        return Auth::check();
+        return Auth::user()?->isAdmin() ?? false;
     }
 
     public static function canEdit($record): bool
     {
-        // Only managers/admins can edit logs, or staff can edit their own logs within 24 hours
-        $user = Auth::user();
-        if (! $user) {
-            return false;
-        }
-
-        if ($user->isManagerOrAdmin()) {
-            return true;
-        }
-
-        // Staff can edit their own within 24 hours
-        return $record->user_id === $user->id && $record->created_at->gt(now()->subDay());
+        return Auth::user()?->isAdmin() ?? false;
     }
 
     public static function canDelete($record): bool
     {
-        // Only managers and admins can delete
-        return Auth::user()?->isManagerOrAdmin() ?? false;
+        return Auth::user()?->isAdmin() ?? false;
     }
 
     public static function form(Form $form): Form
@@ -78,11 +65,18 @@ class MileageLogResource extends Resource
                                     $set('current_vehicle_mileage', $vehicle?->current_mileage ?? 0);
                                 }
                             })
-                            ->helperText(fn($get) => $get('current_vehicle_mileage') 
-                                ? 'Current mileage: ' . number_format($get('current_vehicle_mileage')) . ' KM' 
+                            ->helperText(fn ($get) => $get('current_vehicle_mileage') 
+                                ? 'Current mileage: ' . number_format((float) $get('current_vehicle_mileage')) . ' KM' 
                                 : null),
 
                         Forms\Components\Hidden::make('current_vehicle_mileage'),
+
+                        Forms\Components\Select::make('user_id')
+                            ->label('Staff Member')
+                            ->relationship('user', 'name')
+                            ->searchable()
+                            ->required()
+                            ->default(Auth::id()),
 
                         Forms\Components\TextInput::make('mileage_reading')
                             ->label('Odometer Reading (KM)')
@@ -123,7 +117,7 @@ class MileageLogResource extends Resource
                 Tables\Columns\TextColumn::make('mileage_reading')
                     ->label('Mileage')
                     ->sortable()
-                    ->formatStateUsing(fn($state) => number_format($state) . ' KM'),
+                    ->formatStateUsing(fn ($state) => number_format((float) $state) . ' KM'),
 
                 Tables\Columns\TextColumn::make('user.name')
                     ->label('Logged By')
@@ -148,17 +142,17 @@ class MileageLogResource extends Resource
 
                 Tables\Filters\SelectFilter::make('user')
                     ->relationship('user', 'name')
-                    ->visible(fn() => Auth::user()->role === 2),
+                    ->searchable(),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make()
-                    ->visible(fn($record) => self::canEdit($record)),
-                Tables\Actions\DeleteAction::make()
-                    ->visible(fn() => Auth::user()->role === 2),
+                Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
-                //
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
             ])
             ->defaultSort('recorded_at', 'desc');
     }
@@ -173,3 +167,4 @@ class MileageLogResource extends Resource
         ];
     }
 }
+

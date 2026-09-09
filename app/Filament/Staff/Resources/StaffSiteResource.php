@@ -24,16 +24,12 @@ class StaffSiteResource extends Resource
 
     public static function canViewAny(): bool
     {
-        $user = Auth::user();
-
-        return $user && $user->isManager();
+        return Auth::user()?->isManagerOrAdmin() ?? false;
     }
 
     public static function canCreate(): bool
     {
-        $user = Auth::user();
-
-        return $user && $user->isManager();
+        return Auth::user()?->isManagerOrAdmin() ?? false;
     }
 
     public static function canEdit($record): bool

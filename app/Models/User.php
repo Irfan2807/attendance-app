@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // Add these Filament imports
+use App\Enums\Role;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -40,6 +41,7 @@ class User extends Authenticatable implements FilamentUser
     protected $casts = [
         'password' => 'hashed',
         'role' => 'integer',
+        'role' => Role::class,
     ];
 
     /**
@@ -51,24 +53,34 @@ class User extends Authenticatable implements FilamentUser
         return 'phone';
     }
 
-    public function attendances(): HasMany
+    public function roleValue(): int
     {
-        return $this->hasMany(Attendance::class);
+        return $this->role instanceof Role ? $this->role->value : (int) $this->role;
     }
 
     public function isAdmin(): bool
     {
-        return $this->role === self::ROLE_ADMIN;
+        return $this->role === Role::SuperAdmin || $this->roleValue() === 1;
     }
 
     public function isManager(): bool
     {
-        return $this->role === self::ROLE_MANAGER;
+        return $this->role === Role::Manager || $this->roleValue() === 2;
     }
 
     public function isStaff(): bool
     {
-        return $this->role === self::ROLE_STAFF;
+        return $this->role === Role::Staff || $this->roleValue() === 3;
+    }
+
+    public function isManagerOrAdmin(): bool
+    {
+        return $this->isAdmin() || $this->isManager();
+    }
+
+    public function attendances(): HasMany
+    {
+        return $this->hasMany(Attendance::class);
     }
 
     public function dashboardPath(): string
@@ -76,19 +88,28 @@ class User extends Authenticatable implements FilamentUser
         return $this->isAdmin() ? '/admin' : '/staff';
     }
 
+    public function mileageLogs(): HasMany
+    {
+        return $this->hasMany(MileageLog::class);
+    }
+
+    public function infractions(): HasMany
+    {
+        return $this->hasMany(AttendanceInfraction::class);
+    }
+
     // The Gatekeeper Logic
     public function canAccessPanel(Panel $panel): bool
     {
         // 1. ADMIN PANEL (Orange)
-        // Only admins can access the admin panel.
         if ($panel->getId() === 'admin') {
             return $this->isAdmin();
         }
 
         // 2. STAFF PANEL (Green)
-        // Admins remain admin-only and are explicitly blocked from this panel.
+        // Staff and Managers. Admins allowed for management oversight.
         if ($panel->getId() === 'staff') {
-            return $this->isManager() || $this->isStaff();
+            return $this->isStaff() || $this->isManager() || $this->isAdmin();
         }
 
         return false; // Default: Block access to unknown panels

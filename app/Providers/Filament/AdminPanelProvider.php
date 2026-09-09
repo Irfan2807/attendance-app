@@ -2,10 +2,6 @@
 
 namespace App\Providers\Filament;
 
-use App\Filament\Admin\Widgets\AdminApprovalAnalyticsWidget;
-use App\Filament\Admin\Widgets\AdminAttendanceKpiWidget;
-use App\Filament\Admin\Widgets\AdminAttendanceTrendsWidget;
-use App\Filament\Admin\Widgets\AdminDataQualityAnalyticsWidget;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
@@ -47,10 +43,6 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Admin/Widgets'), for: 'App\\Filament\\Admin\\Widgets')
             ->widgets([
-                AdminAttendanceKpiWidget::class,
-                AdminAttendanceTrendsWidget::class,
-                AdminApprovalAnalyticsWidget::class,
-                AdminDataQualityAnalyticsWidget::class,
                 Widgets\AccountWidget::class,
             ])
             ->middleware([
