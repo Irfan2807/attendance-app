@@ -76,7 +76,10 @@ class VehicleServiceStatusTest extends TestCase
         ]);
 
         $this->assertTrue($vehicle->isServiceOverdue());
+        $this->assertFalse($vehicle->isServiceDueSoon());
         $this->assertSame(0, $vehicle->kmUntilService());
+        $this->assertSame(-500, $vehicle->serviceMileageDifference());
+        $this->assertSame(500, $vehicle->kmOverdue());
     }
 
     public function test_km_until_service_never_returns_negative(): void
@@ -90,6 +93,8 @@ class VehicleServiceStatusTest extends TestCase
         ]);
 
         $this->assertSame(0, $vehicle->kmUntilService());
+        $this->assertSame(-5000, $vehicle->serviceMileageDifference());
+        $this->assertSame(5000, $vehicle->kmOverdue());
     }
 
     // -------------------------------------------------------------------------

@@ -5,6 +5,8 @@ namespace App\Filament\Staff\Widgets;
 use App\Enums\Role;
 use App\Models\Attendance;
 use App\Models\User;
+use App\Services\AttendanceAnalyticsService;
+use App\Services\AttendanceMetricsService;
 use App\Services\AttendanceWindowService;
 use Carbon\Carbon;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
@@ -17,6 +19,9 @@ use Livewire\Attributes\Lazy;
 #[Lazy]
 class StaffAttendanceOverviewStatsWidget extends BaseWidget
 {
+    protected static ?int $sort = 2;
+    protected int | string | array $columnSpan = 'full';
+
     public static function canView(): bool
     {
         return Auth::check() && Auth::user()->isManagerOrAdmin();
@@ -25,7 +30,7 @@ class StaffAttendanceOverviewStatsWidget extends BaseWidget
     protected function getStats(): array
     {
         // Cache stats for 2 minutes to reduce repeated dashboard load while keeping fresh counts.
-        return Cache::remember('staff_stats_' . Auth::id(), 120, function () {
+        return Cache::remember('staff_stats_v3_' . Auth::id(), 120, function () {
             $dbDriver = DB::connection()->getDriverName();
             [$todayStart, $todayEnd] = AttendanceWindowService::operationalDayRange();
             $thisMonth = Carbon::now()->startOfMonth();
@@ -66,10 +71,14 @@ class StaffAttendanceOverviewStatsWidget extends BaseWidget
                     ->value('total_minutes');
             }
 
-            $teamTotalHours = $teamTotalMinutes / 60;
+            $formattedTeamHours = AttendanceMetricsService::formatHoursAndMinutes($teamTotalMinutes);
 
-            // Pending approvals
+            // Site coverage for today
+            $coverage = AttendanceAnalyticsService::siteCoverage($todayStart, $todayEnd);
+
+            // Pending approvals (staff shifts awaiting review)
             $pendingCount = Attendance::whereIn('status', ['pending', 'temporary'])
+                ->whereHas('user', fn ($q) => $q->where('role', Role::Staff->value))
                 ->where('user_id', '!=', Auth::id())
                 ->count();
 
@@ -79,7 +88,19 @@ class StaffAttendanceOverviewStatsWidget extends BaseWidget
                     ->color($attendanceRateToday >= 80 ? 'success' : ($attendanceRateToday >= 60 ? 'warning' : 'danger'))
                     ->icon('heroicon-o-users'),
 
-                Stat::make('Team Total Hours', number_format($teamTotalHours, 1) . 'h')
+                Stat::make(
+                    'Site Coverage',
+                    $coverage['has_configured_sites'] ? $coverage['coverage_rate'] . '%' : 'N/A'
+                )
+                    ->description(
+                        $coverage['has_configured_sites']
+                            ? $coverage['active_sites'] . '/' . $coverage['total_active_sites'] . ' active sites manned'
+                            : 'No active sites configured'
+                    )
+                    ->color($coverage['has_configured_sites'] ? ($coverage['coverage_rate'] >= 70 ? 'success' : 'warning') : 'gray')
+                    ->icon('heroicon-o-map-pin'),
+
+                Stat::make('Team Total Hours', $formattedTeamHours)
                     ->description('This month')
                     ->color('info')
                     ->icon('heroicon-o-clock'),

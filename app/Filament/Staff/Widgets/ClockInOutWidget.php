@@ -275,46 +275,73 @@ class ClockInOutWidget extends Widget
             $status = 'pending'; // Default: requires approval
             $verificationNotes = [];
 
-            if ($this->isManualLocation) {
-                $status = 'pending';
-                $verificationNotes[] = 'Manual Coordinate Override - Requires manager approval';
-                $verificationNotes[] = "IP: {$clientIp}";
-                if ($this->latitude && $this->longitude) {
-                    $verificationNotes[] = "Manual Location: {$this->latitude}, {$this->longitude}";
-                }
-            } elseif ($completedShift) {
-                $status = 'pending';
-                $verificationNotes[] = 'Additional shift - Requires manager approval';
-                $verificationNotes[] = "Previous shift: {$completedShift->clock_in_time->format('H:i')} - {$completedShift->clock_out_time->format('H:i')}";
-            } elseif ($ipVerified) {
+            // Managers and Admins are self-authenticating leadership: auto-approved presence.
+            if ($user->isManagerOrAdmin()) {
                 $status = 'approved';
-                $verificationNotes[] = "IP Verified: {$clientIp}";
-            } elseif ($locationVerified) {
-                $status = 'approved';
-                $verificationNotes[] = "Location Verified: {$locationVerified->name}";
-            } else {
-                // Step 3: Check Group Verification (5+ staff within 50m in last 2 hours)
-                $groupVerified = false;
-                if (! $this->isManualLocation && $this->latitude && $this->longitude) {
-                    $groupVerified = AttendanceVerificationService::verifyGroupClockIn(
-                        $this->latitude,
-                        $this->longitude,
-                        50, // 50 meter radius
-                        5,  // minimum 5 staff
-                        2   // within last 2 hours
-                    );
-                }
 
-                if ($groupVerified) {
-                    $status = 'approved';
-                    $verificationNotes[] = 'Group Verified: 5+ staff nearby';
-                    $verificationNotes[] = "Location: {$this->latitude}, {$this->longitude}";
+                if ($this->isManualLocation) {
+                    $verificationNotes[] = '[Manual Coordinate Override]';
+                    $verificationNotes[] = "IP: {$clientIp}";
+                    if ($this->latitude && $this->longitude) {
+                        $verificationNotes[] = "Manual Location: {$this->latitude}, {$this->longitude}";
+                    }
+                } elseif ($completedShift) {
+                    $verificationNotes[] = '[Additional Shift]';
+                    $verificationNotes[] = "Previous shift: {$completedShift->clock_in_time->format('H:i')} - {$completedShift->clock_out_time->format('H:i')}";
+                } elseif ($ipVerified) {
+                    $verificationNotes[] = "IP Verified: {$clientIp}";
+                } elseif ($locationVerified) {
+                    $verificationNotes[] = "Location Verified: {$locationVerified->name}";
                 } else {
+                    $verificationNotes[] = '[Off-Site Management Presence]';
                     $verificationNotes[] = "IP: {$clientIp}";
                     if ($this->latitude && $this->longitude) {
                         $verificationNotes[] = "Location: {$this->latitude}, {$this->longitude}";
                     }
-                    $verificationNotes[] = 'Awaiting manager approval';
+                }
+            } else {
+                // Standard Field Staff verification flow
+                if ($this->isManualLocation) {
+                    $status = 'pending';
+                    $verificationNotes[] = 'Manual Coordinate Override - Requires manager approval';
+                    $verificationNotes[] = "IP: {$clientIp}";
+                    if ($this->latitude && $this->longitude) {
+                        $verificationNotes[] = "Manual Location: {$this->latitude}, {$this->longitude}";
+                    }
+                } elseif ($completedShift) {
+                    $status = 'pending';
+                    $verificationNotes[] = 'Additional shift - Requires manager approval';
+                    $verificationNotes[] = "Previous shift: {$completedShift->clock_in_time->format('H:i')} - {$completedShift->clock_out_time->format('H:i')}";
+                } elseif ($ipVerified) {
+                    $status = 'approved';
+                    $verificationNotes[] = "IP Verified: {$clientIp}";
+                } elseif ($locationVerified) {
+                    $verificationNotes[] = "Location Verified: {$locationVerified->name}";
+                } else {
+                    // Step 3: Check Group Verification (5+ staff within 50m in last 2 hours)
+                    $groupVerified = false;
+                    if (! $this->isManualLocation && $this->latitude && $this->longitude) {
+                        $groupVerified = AttendanceVerificationService::verifyGroupClockIn(
+                            $this->latitude,
+                            $this->longitude,
+                            50, // 50 meter radius
+                            5,  // minimum 5 staff
+                            2   // within last 2 hours
+                        );
+                    }
+
+                    if ($groupVerified) {
+                        $status = 'approved';
+                        $verificationNotes[] = 'Group Verified: 5+ staff nearby';
+                        $verificationNotes[] = "Location: {$this->latitude}, {$this->longitude}";
+                    } else {
+                        $status = 'pending';
+                        $verificationNotes[] = "IP: {$clientIp}";
+                        if ($this->latitude && $this->longitude) {
+                            $verificationNotes[] = "Location: {$this->latitude}, {$this->longitude}";
+                        }
+                        $verificationNotes[] = 'Awaiting manager approval';
+                    }
                 }
             }
 

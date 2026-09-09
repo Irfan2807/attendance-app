@@ -128,7 +128,7 @@ class AttendanceResource extends Resource
                         'approved_by' => Auth::id(),
                         'approved_at' => now(),
                     ]))
-                    ->visible(fn (Attendance $record) => in_array($record->status, ['pending', 'temporary'])),
+                    ->visible(fn (Attendance $record) => in_array($record->status, ['pending', 'temporary']) && $record->user_id !== Auth::id()),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

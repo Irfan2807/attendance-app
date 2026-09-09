@@ -106,6 +106,45 @@ class AttendanceAnalyticsService
         ];
     }
 
+    public static function punctualityRate(Carbon $start, Carbon $end): array
+    {
+        $presentStaff = self::staffAttendanceQuery()
+            ->where('status', '!=', 'rejected')
+            ->whereBetween('clock_in_time', [$start, $end])
+            ->distinct('user_id')
+            ->count('user_id');
+
+        $lateCount = self::lateStartsCount($start, $end);
+        $onTimeCount = max(0, $presentStaff - $lateCount);
+
+        $rate = $presentStaff > 0
+            ? round(($onTimeCount / $presentStaff) * 100, 1)
+            : 0.0;
+
+        return [
+            'rate' => $rate,
+            'on_time' => $onTimeCount,
+            'late' => $lateCount,
+            'present' => $presentStaff,
+        ];
+    }
+
+    public static function punctualityRateTrend(int $days, ?Carbon $reference = null): array
+    {
+        $labels = [];
+        $rates = [];
+
+        foreach (self::operationalBuckets($days, $reference) as $bucket) {
+            $labels[] = $bucket['label'];
+            $rates[] = self::punctualityRate($bucket['start'], $bucket['end'])['rate'];
+        }
+
+        return [
+            'labels' => $labels,
+            'rates' => $rates,
+        ];
+    }
+
     public static function pendingApprovalMetrics(?Carbon $reference = null): array
     {
         $now = $reference?->copy() ?? now();

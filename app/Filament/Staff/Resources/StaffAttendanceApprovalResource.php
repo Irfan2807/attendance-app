@@ -2,6 +2,7 @@
 
 namespace App\Filament\Staff\Resources;
 
+use App\Enums\Role;
 use App\Filament\Staff\Resources\StaffAttendanceApprovalResource\Pages;
 use App\Models\Attendance;
 use Filament\Forms;
@@ -35,10 +36,12 @@ class StaffAttendanceApprovalResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        // Show pending and temporary entries from all staff, excluding the current manager's own records.
+        // Show pending and temporary entries from field staff only, excluding own records.
+        // Peer manager approvals are prohibited.
         return parent::getEloquentQuery()
             ->with(['user', 'approver'])
             ->whereIn('status', ['pending', 'temporary'])
+            ->whereHas('user', fn ($q) => $q->where('role', Role::Staff->value))
             ->where('user_id', '!=', Auth::id())
             ->orderByDesc('created_at');
     }
@@ -164,10 +167,11 @@ class StaffAttendanceApprovalResource extends Resource
                     ->action(function ($record, array $data) {
                         $approver = Auth::user();
                         
-                        // Additional safety check: prevent self-approval
-                        if ($record->user_id === $approver->id) {
+                        // Additional safety check: prevent self-approval and peer manager approval
+                        if ($record->user_id === $approver->id || $record->user?->roleValue() !== Role::Staff->value) {
                             \Filament\Notifications\Notification::make()
-                                ->title('Cannot Approve Own Attendance')
+                                ->title('Cannot Approve Attendance')
+                                ->body('Only field staff attendance records can be approved by managers.')
                                 ->danger()
                                 ->send();
                             return;
@@ -199,10 +203,11 @@ class StaffAttendanceApprovalResource extends Resource
                     ->action(function ($record, array $data) {
                         $approver = Auth::user();
                         
-                        // Additional safety check: prevent self-rejection
-                        if ($record->user_id === $approver->id) {
+                        // Additional safety check: prevent self-rejection and peer manager rejection
+                        if ($record->user_id === $approver->id || $record->user?->roleValue() !== Role::Staff->value) {
                             \Filament\Notifications\Notification::make()
-                                ->title('Cannot Reject Own Attendance')
+                                ->title('Cannot Reject Attendance')
+                                ->body('Only field staff attendance records can be reviewed by managers.')
                                 ->danger()
                                 ->send();
                             return;
@@ -236,8 +241,8 @@ class StaffAttendanceApprovalResource extends Resource
                             $count = 0;
                             
                             foreach ($records as $record) {
-                                // Skip own records
-                                if ($record->user_id === $approver->id) {
+                                // Skip own records and non-staff records
+                                if ($record->user_id === $approver->id || $record->user?->roleValue() !== Role::Staff->value) {
                                     continue;
                                 }
                                 
@@ -274,8 +279,8 @@ class StaffAttendanceApprovalResource extends Resource
                             $count = 0;
                             
                             foreach ($records as $record) {
-                                // Skip own records
-                                if ($record->user_id === $approver->id) {
+                                // Skip own records and non-staff records
+                                if ($record->user_id === $approver->id || $record->user?->roleValue() !== Role::Staff->value) {
                                     continue;
                                 }
                                 

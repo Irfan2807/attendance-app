@@ -157,4 +157,42 @@ class AttendanceApprovalTest extends TestCase
 
         $this->assertSame('approved', $attendance->fresh()->status);
     }
+
+    public function test_peer_manager_approval_is_excluded_from_approval_queue(): void
+    {
+        $manager1 = User::factory()->create(['role' => 2]);
+        $manager2 = User::factory()->create(['role' => 2]);
+        $staff = User::factory()->create(['role' => 3]);
+
+        // Manager 1 has a temporary record
+        Attendance::create([
+            'user_id' => $manager1->id,
+            'site_name' => 'Field Site',
+            'latitude' => 3.0,
+            'longitude' => 101.0,
+            'status' => 'temporary',
+            'clock_in_time' => now()->subHours(4),
+            'clock_out_time' => now(),
+        ]);
+
+        // Staff has a temporary record
+        $staffAttendance = Attendance::create([
+            'user_id' => $staff->id,
+            'site_name' => 'Tower Alpha',
+            'latitude' => 3.0,
+            'longitude' => 101.0,
+            'status' => 'temporary',
+            'clock_in_time' => now()->subHours(4),
+            'clock_out_time' => now(),
+        ]);
+
+        // When Manager 2 views the approval queue
+        $this->actingAs($manager2);
+        $queueRecords = \App\Filament\Staff\Resources\StaffAttendanceApprovalResource::getEloquentQuery()->get();
+
+        // Must ONLY contain the staff attendance, NOT the peer manager attendance
+        $this->assertCount(1, $queueRecords);
+        $this->assertSame($staffAttendance->id, $queueRecords->first()->id);
+        $this->assertSame($staff->id, $queueRecords->first()->user_id);
+    }
 }

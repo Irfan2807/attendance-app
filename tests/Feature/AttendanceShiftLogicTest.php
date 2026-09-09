@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Filament\Staff\Widgets\StaffAttendanceOverviewStatsWidget;
+use App\Filament\Staff\Widgets\StaffAttendanceTrendsWidget;
 use App\Models\Attendance;
 use App\Models\Site;
 use App\Models\User;
@@ -60,9 +61,11 @@ class AttendanceShiftLogicTest extends TestCase
 
         $this->actingAs($staff);
         $this->assertFalse(StaffAttendanceOverviewStatsWidget::canView());
+        $this->assertFalse(StaffAttendanceTrendsWidget::canView());
 
         $this->actingAs($manager);
         $this->assertTrue(StaffAttendanceOverviewStatsWidget::canView());
+        $this->assertTrue(StaffAttendanceTrendsWidget::canView());
     }
 
     public function test_overtime_starts_after_standard_workday_hours(): void
@@ -99,6 +102,51 @@ class AttendanceShiftLogicTest extends TestCase
         ]);
 
         $this->assertSame(0, AttendanceMetricsService::overtimeMinutes($attendance));
+    }
+
+    public function test_format_hours_and_minutes_displays_clear_hours_and_minutes(): void
+    {
+        $this->assertSame('0hrs 0 mins', AttendanceMetricsService::formatHoursAndMinutes(0));
+        $this->assertSame('0hrs 0 mins', AttendanceMetricsService::formatHoursAndMinutes(-15));
+        $this->assertSame('0hrs 45 mins', AttendanceMetricsService::formatHoursAndMinutes(45));
+        $this->assertSame('1hrs 0 mins', AttendanceMetricsService::formatHoursAndMinutes(60));
+        $this->assertSame('1hrs 30 mins', AttendanceMetricsService::formatHoursAndMinutes(90));
+        $this->assertSame('8hrs 15 mins', AttendanceMetricsService::formatHoursAndMinutes(495));
+    }
+
+    public function test_punctuality_rate_calculates_on_time_ratio_correctly(): void
+    {
+        config()->set('attendance.day_shift_starts_at', 8);
+        config()->set('attendance.night_shift_starts_at', 17);
+        config()->set('attendance.late_grace_minutes', 15);
+
+        $user1 = User::factory()->create(['role' => 3]);
+        $user2 = User::factory()->create(['role' => 3]);
+        $start = Carbon::create(2026, 4, 15, 6, 0, 0);
+        $end = Carbon::create(2026, 4, 15, 22, 0, 0);
+
+        // User 1 on-time at 08:00
+        Attendance::create([
+            'user_id' => $user1->id,
+            'clock_in_time' => Carbon::create(2026, 4, 15, 8, 0, 0),
+            'status' => 'approved',
+            'latitude' => 3.1390,
+            'longitude' => 101.6869,
+        ]);
+        // User 2 late at 08:45 (exceeds 15-min grace)
+        Attendance::create([
+            'user_id' => $user2->id,
+            'clock_in_time' => Carbon::create(2026, 4, 15, 8, 45, 0),
+            'status' => 'approved',
+            'latitude' => 3.1390,
+            'longitude' => 101.6869,
+        ]);
+
+        $punctuality = AttendanceAnalyticsService::punctualityRate($start, $end);
+        $this->assertSame(2, $punctuality['present']);
+        $this->assertSame(1, $punctuality['on_time']);
+        $this->assertSame(1, $punctuality['late']);
+        $this->assertSame(50.0, $punctuality['rate']);
     }
 
     public function test_site_coverage_only_counts_registered_active_sites_and_clamps_to_100(): void

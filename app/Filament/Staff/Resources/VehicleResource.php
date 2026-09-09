@@ -124,9 +124,18 @@ class VehicleResource extends Resource
 
                 Tables\Columns\TextColumn::make('km_remaining')
                     ->label('KM Until Service')
-                    ->getStateUsing(fn($record) => $record->kmUntilService())
-                    ->formatStateUsing(fn($state) => number_format($state) . ' KM')
-                    ->color(fn($state) => match(true) {
+                    ->getStateUsing(fn ($record) => $record->serviceMileageDifference())
+                    ->formatStateUsing(function ($state): string {
+                        if ($state < 0) {
+                            return 'Overdue by ' . number_format(abs((float) $state)) . ' KM';
+                        }
+                        if ((float) $state === 0.0) {
+                            return 'Due Now (0 KM)';
+                        }
+
+                        return number_format((float) $state) . ' KM';
+                    })
+                    ->color(fn ($state) => match (true) {
                         $state <= 0 => 'danger',
                         $state <= 500 => 'warning',
                         default => 'success',

@@ -12,7 +12,7 @@ use Livewire\Attributes\Lazy;
 #[Lazy]
 class VehicleServiceAlertWidget extends BaseWidget
 {
-    protected static ?int $sort = 1;
+    protected static ?int $sort = 4;
     protected int | string | array $columnSpan = 'full';
 
     public static function canView(): bool
@@ -65,9 +65,18 @@ class VehicleServiceAlertWidget extends BaseWidget
 
                 Tables\Columns\TextColumn::make('km_remaining')
                     ->label('KM Remaining')
-                    ->getStateUsing(fn($record) => $record->kmUntilService())
-                    ->formatStateUsing(fn($state) => $state <= 0 ? 'Overdue by ' . number_format(abs($state)) . ' KM' : number_format($state) . ' KM')
-                    ->color(fn($state) => $state <= 0 ? 'danger' : 'warning')
+                    ->getStateUsing(fn ($record) => $record->serviceMileageDifference())
+                    ->formatStateUsing(function ($state): string {
+                        if ($state < 0) {
+                            return 'Overdue by ' . number_format(abs($state)) . ' KM';
+                        }
+                        if ($state === 0) {
+                            return 'Due Now (0 KM)';
+                        }
+
+                        return number_format($state) . ' KM';
+                    })
+                    ->color(fn ($state) => $state <= 0 ? 'danger' : 'warning')
                     ->weight('bold'),
             ])
             ->actions([

@@ -67,4 +67,13 @@ class AttendanceMetricsService
 
         return $hours . 'h ' . $remainingMinutes . 'm';
     }
+
+    public static function formatHoursAndMinutes(int $minutes): string
+    {
+        $minutes = max(0, $minutes);
+        $hours = intdiv($minutes, 60);
+        $remainingMinutes = $minutes % 60;
+
+        return "{$hours}hrs {$remainingMinutes} mins";
+    }
 }

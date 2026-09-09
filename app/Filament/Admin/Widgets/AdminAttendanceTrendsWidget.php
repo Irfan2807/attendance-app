@@ -67,6 +67,18 @@ class AdminAttendanceTrendsWidget extends ManagementAnalyticsChartWidget
         ];
     }
 
+    protected function getOptions(): array
+    {
+        return [
+            'scales' => [
+                'y' => [
+                    'beginAtZero' => true,
+                    'min' => 0,
+                ],
+            ],
+        ];
+    }
+
     protected function getType(): string
     {
         return 'line';
