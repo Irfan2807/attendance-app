@@ -28,6 +28,7 @@ class User extends Authenticatable implements FilamentUser
         'phone',
         'password',
         'role',
+        'is_active',
         'incomplete_clock_out_count',
     ];
 
@@ -42,6 +43,7 @@ class User extends Authenticatable implements FilamentUser
         'password' => 'hashed',
         'role' => 'integer',
         'role' => Role::class,
+        'is_active' => 'boolean',
     ];
 
     /**

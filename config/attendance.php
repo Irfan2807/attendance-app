@@ -16,6 +16,9 @@ return [
     // Grace period (in minutes) before a clock-in is counted as late.
     'late_grace_minutes' => env('ATTENDANCE_LATE_GRACE_MINUTES', 15),
 
+    // Early arrival buffer (in hours) before standard shift start that belongs to today's shift.
+    'early_arrival_buffer_hours' => env('ATTENDANCE_EARLY_ARRIVAL_BUFFER_HOURS', 2),
+
     // Legacy shift window values retained for existing operational-day logic.
     'day_shift_ot_starts_at' => env('ATTENDANCE_DAY_OT_START_HOUR', 17),
     'night_shift_standard_hours' => env('ATTENDANCE_NIGHT_STANDARD_HOURS', 8),

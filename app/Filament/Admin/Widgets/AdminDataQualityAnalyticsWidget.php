@@ -31,10 +31,14 @@ class AdminDataQualityAnalyticsWidget extends ManagementAnalyticsStatsWidget
                 ->color($stats['auto_closed_stale'] > 0 ? 'warning' : 'success')
                 ->icon('heroicon-o-arrow-path-rounded-square'),
 
-            Stat::make('Repeat Temporary Users', (string) $stats['repeated_temporary_users'])
-                ->description('Users with at least 2 temporary statuses (30 days)')
-                ->color($stats['repeated_temporary_users'] > 0 ? 'danger' : 'success')
-                ->icon('heroicon-o-user-minus'),
+            Stat::make('Unverified Submissions', (string) $stats['repeated_temporary_users'])
+                ->description(
+                    ($stats['stale_temporary_shifts'] ?? 0) > 0
+                        ? ($stats['stale_temporary_shifts']).' unreviewed >48h'
+                        : 'Users with 2+ unverified shifts (30 days)'
+                )
+                ->color(($stats['stale_temporary_shifts'] ?? 0) > 0 ? 'danger' : ($stats['repeated_temporary_users'] > 0 ? 'warning' : 'success'))
+                ->icon('heroicon-o-document-magnifying-glass'),
 
             Stat::make('Repeat Offender', $stats['repeat_offender_name'])
                 ->description($stats['repeat_offender_count'].' infractions in last 30 days')

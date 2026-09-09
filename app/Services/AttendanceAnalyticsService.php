@@ -21,14 +21,15 @@ class AttendanceAnalyticsService
     public static function rollingRange(int $days, ?Carbon $reference = null): array
     {
         $safeDays = max(1, $days);
-        $end = AttendanceWindowService::operationalDayEnd($reference, 'day');
+        $bufferHours = (int) config('attendance.early_arrival_buffer_hours', 2);
+        $end = AttendanceWindowService::operationalDayEnd($reference, 'day')->subHours($bufferHours);
 
         return [$end->copy()->subDays($safeDays), $end];
     }
 
     public static function attendanceRate(Carbon $start, Carbon $end): array
     {
-        $totalStaff = User::where('role', Role::Staff->value)->count();
+        $totalStaff = User::where('role', Role::Staff->value)->where('is_active', true)->count();
         $presentStaff = self::staffAttendanceQuery()
             ->where('status', '!=', 'rejected')
             ->whereBetween('clock_in_time', [$start, $end])
@@ -124,17 +125,19 @@ class AttendanceAnalyticsService
             ->whereIn('status', ['approved', 'rejected'])
             ->whereBetween('approved_at', [$start, $end])
             ->whereNotNull('approved_at')
-            ->get(['status', 'approved_at', 'clock_in_time', 'approved_by']);
+            ->get(['status', 'approved_at', 'clock_in_time', 'clock_out_time', 'approved_by']);
 
         $approvedCount = $decisions->where('status', 'approved')->count();
         $rejectedCount = $decisions->where('status', 'rejected')->count();
         $decisionCount = $approvedCount + $rejectedCount;
 
-        $validTurnaroundRecords = $decisions->filter(fn (Attendance $a) => $a->clock_in_time && $a->approved_at);
+        $validTurnaroundRecords = $decisions->filter(fn (Attendance $a) => ($a->clock_out_time || $a->clock_in_time) && $a->approved_at);
 
         $avgTurnaroundMinutes = $validTurnaroundRecords->isNotEmpty()
             ? round($validTurnaroundRecords->avg(function (Attendance $attendance): float {
-                return (float) max(0, $attendance->clock_in_time->diffInMinutes($attendance->approved_at));
+                $submissionTime = $attendance->clock_out_time ?? $attendance->clock_in_time;
+
+                return (float) max(0, $submissionTime->diffInMinutes($attendance->approved_at));
             }), 1)
             : 0.0;
 
@@ -203,6 +206,7 @@ class AttendanceAnalyticsService
         return [
             'active_sites' => $activeSitesCount,
             'total_active_sites' => $totalActiveSites,
+            'has_configured_sites' => $totalActiveSites > 0,
             'coverage_rate' => $coverage,
             'top_site_name' => $topSite->site_name ?? '—',
             'top_site_count' => (int) ($topSite->total ?? 0),
@@ -238,6 +242,11 @@ class AttendanceAnalyticsService
             ->get()
             ->count();
 
+        $staleTemporaryShifts = (clone $base)
+            ->where('status', 'temporary')
+            ->where('clock_in_time', '<', now()->subHours(48))
+            ->count();
+
         $repeatOffender = AttendanceInfraction::query()
             ->with('user:id,name')
             ->whereBetween('created_at', [$start, $end])
@@ -259,6 +268,7 @@ class AttendanceAnalyticsService
             'missing_coordinates' => $missingCoordinates,
             'auto_closed_stale' => $autoClosedStale,
             'repeated_temporary_users' => $repeatedTemporaryUsers,
+            'stale_temporary_shifts' => $staleTemporaryShifts,
             'repeat_offender_name' => $repeatOffender['name'] ?? '—',
             'repeat_offender_count' => $repeatOffender['count'] ?? 0,
         ];
@@ -279,7 +289,8 @@ class AttendanceAnalyticsService
     private static function operationalBuckets(int $days, ?Carbon $reference = null): array
     {
         $safeDays = max(1, $days);
-        $endBoundary = AttendanceWindowService::operationalDayEnd($reference, 'day');
+        $bufferHours = (int) config('attendance.early_arrival_buffer_hours', 2);
+        $endBoundary = AttendanceWindowService::operationalDayEnd($reference, 'day')->subHours($bufferHours);
         $buckets = [];
 
         for ($dayOffset = $safeDays - 1; $dayOffset >= 0; $dayOffset--) {

@@ -13,9 +13,12 @@ class AttendanceWindowService
             ? (int) config('attendance.night_shift_starts_at', 17)
             : (int) config('attendance.day_shift_starts_at', 8);
 
+        $bufferHours = (int) config('attendance.early_arrival_buffer_hours', 2);
         $start = $reference->copy()->startOfDay()->addHours($cutoffHour);
 
-        if ($reference->lt($start)) {
+        // If reference is earlier than the early arrival threshold (e.g. earlier than 06:00 for 08:00 start),
+        // it belongs to yesterday's operational day.
+        if ($reference->lt($start->copy()->subHours($bufferHours))) {
             $start->subDay();
         }
 
@@ -30,8 +33,12 @@ class AttendanceWindowService
     public static function operationalDayRange(?Carbon $reference = null, string $shiftType = 'day'): array
     {
         $start = self::operationalDayStart($reference, $shiftType);
+        $bufferHours = (int) config('attendance.early_arrival_buffer_hours', 2);
 
-        return [$start, $start->copy()->addDay()];
+        return [
+            $start->copy()->subHours($bufferHours),
+            $start->copy()->addDay()->subHours($bufferHours),
+        ];
     }
 
     public static function maxShiftHours(): int

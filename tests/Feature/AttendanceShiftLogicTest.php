@@ -209,4 +209,95 @@ class AttendanceShiftLogicTest extends TestCase
         $this->assertSame(2, $rateData['total']);
         $this->assertSame(50.0, $rateData['rate']);
     }
+
+    public function test_early_bird_clock_in_is_included_in_today_operational_day(): void
+    {
+        config()->set('attendance.day_shift_starts_at', 8);
+        config()->set('attendance.early_arrival_buffer_hours', 2);
+
+        $earlyRef = Carbon::create(2026, 4, 15, 7, 30, 0);
+        $start = AttendanceWindowService::operationalDayStart($earlyRef, 'day');
+        [$rangeStart, $rangeEnd] = AttendanceWindowService::operationalDayRange($earlyRef, 'day');
+
+        $this->assertSame('2026-04-15 08:00:00', $start->format('Y-m-d H:i:s'));
+        $this->assertSame('2026-04-15 06:00:00', $rangeStart->format('Y-m-d H:i:s'));
+        $this->assertSame('2026-04-16 06:00:00', $rangeEnd->format('Y-m-d H:i:s'));
+
+        $user = User::factory()->create(['role' => 3, 'is_active' => true]);
+        Attendance::create([
+            'user_id' => $user->id,
+            'latitude' => 3.0,
+            'longitude' => 101.0,
+            'status' => 'approved',
+            'clock_in_time' => Carbon::create(2026, 4, 15, 7, 30, 0),
+        ]);
+
+        $rateData = AttendanceAnalyticsService::attendanceRate($rangeStart, $rangeEnd);
+        $this->assertSame(1, $rateData['present']);
+        $this->assertSame(1, $rateData['total']);
+        $this->assertSame(100.0, $rateData['rate']);
+    }
+
+    public function test_inactive_staff_are_excluded_from_attendance_rate_denominator(): void
+    {
+        $activeStaff = User::factory()->create(['role' => 3, 'is_active' => true]);
+        $inactiveStaff = User::factory()->create(['role' => 3, 'is_active' => false]);
+
+        $start = Carbon::create(2026, 4, 15, 6, 0, 0);
+        $end = Carbon::create(2026, 4, 16, 6, 0, 0);
+
+        Attendance::create([
+            'user_id' => $activeStaff->id,
+            'latitude' => 3.0,
+            'longitude' => 101.0,
+            'status' => 'approved',
+            'clock_in_time' => Carbon::create(2026, 4, 15, 8, 30, 0),
+        ]);
+
+        $rateData = AttendanceAnalyticsService::attendanceRate($start, $end);
+        $this->assertSame(1, $rateData['present']);
+        $this->assertSame(1, $rateData['total']);
+        $this->assertSame(100.0, $rateData['rate']);
+    }
+
+    public function test_approval_turnaround_is_calculated_from_clock_out_time(): void
+    {
+        $manager = User::factory()->create(['role' => 2]);
+        $staff = User::factory()->create(['role' => 3, 'is_active' => true]);
+
+        $start = Carbon::create(2026, 4, 1, 0, 0, 0);
+        $end = Carbon::create(2026, 4, 30, 23, 59, 59);
+
+        // Staff worked 8:00 to 17:00 (9 hours), manager approved at 17:30 (30 minutes after clock-out)
+        Attendance::create([
+            'user_id' => $staff->id,
+            'latitude' => 3.0,
+            'longitude' => 101.0,
+            'status' => 'approved',
+            'clock_in_time' => Carbon::create(2026, 4, 15, 8, 0, 0),
+            'clock_out_time' => Carbon::create(2026, 4, 15, 17, 0, 0),
+            'approved_at' => Carbon::create(2026, 4, 15, 17, 30, 0),
+            'approved_by' => $manager->id,
+        ]);
+
+        $analytics = AttendanceAnalyticsService::approvalAnalytics($start, $end);
+
+        $this->assertSame(1, $analytics['approved_count']);
+        $this->assertSame(30.0, $analytics['avg_turnaround_minutes']);
+    }
+
+    public function test_site_coverage_handles_zero_registered_sites_gracefully(): void
+    {
+        Site::query()->delete();
+
+        $start = Carbon::create(2026, 4, 1, 0, 0, 0);
+        $end = Carbon::create(2026, 4, 30, 23, 59, 59);
+
+        $coverage = AttendanceAnalyticsService::siteCoverage($start, $end);
+
+        $this->assertFalse($coverage['has_configured_sites']);
+        $this->assertSame(0, $coverage['total_active_sites']);
+        $this->assertSame(0, $coverage['active_sites']);
+        $this->assertSame(0.0, $coverage['coverage_rate']);
+    }
 }

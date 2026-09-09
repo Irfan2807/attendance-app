@@ -81,7 +81,13 @@ class UserResource extends Resource
                     ->dehydrateStateUsing(fn ($state) => Hash::make($state))
                     ->dehydrated(fn ($state) => filled($state))
                     ->required(fn (string $context): bool => $context === 'create')
-                    ->minLength(8), 
+                    ->minLength(8),
+
+                Forms\Components\Toggle::make('is_active')
+                    ->label('Active Status')
+                    ->default(true)
+                    ->helperText('Inactive staff are excluded from daily attendance rates')
+                    ->required(),
             ]);
     }
 
@@ -222,6 +228,11 @@ class UserResource extends Resource
                     })
                     ->badge()
                     ->color('success'),
+
+                Tables\Columns\IconColumn::make('is_active')
+                    ->boolean()
+                    ->label('Active')
+                    ->sortable(),
             ])
             ->modifyQueryUsing(fn ($query) => $query->withCount('attendances')->with(['attendances' => fn ($q) => $q->whereNotNull('clock_out_time')]))
             ->filters([
@@ -231,6 +242,8 @@ class UserResource extends Resource
                         2 => 'Manager',
                         3 => 'Staff',
                     ]),
+                Tables\Filters\TernaryFilter::make('is_active')
+                    ->label('Active Status'),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),

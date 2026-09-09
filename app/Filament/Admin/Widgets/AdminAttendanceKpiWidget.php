@@ -58,9 +58,22 @@ class AdminAttendanceKpiWidget extends ManagementAnalyticsStatsWidget
                 ->icon('heroicon-o-calendar-days')
                 ->chart($metrics['month_overtime_trend']['hours']),
 
-            Stat::make('Site Coverage', $metrics['site_coverage']['coverage_rate'].'%')
-                ->description($metrics['site_coverage']['active_sites'].'/'.$metrics['site_coverage']['total_active_sites'].' active sites')
-                ->color($metrics['site_coverage']['coverage_rate'] >= 70 ? 'success' : 'warning')
+            Stat::make(
+                'Site Coverage',
+                ($metrics['site_coverage']['has_configured_sites'] ?? false)
+                    ? $metrics['site_coverage']['coverage_rate'].'%'
+                    : 'N/A'
+            )
+                ->description(
+                    ($metrics['site_coverage']['has_configured_sites'] ?? false)
+                        ? $metrics['site_coverage']['active_sites'].'/'.$metrics['site_coverage']['total_active_sites'].' active sites'
+                        : 'No active sites configured'
+                )
+                ->color(
+                    ($metrics['site_coverage']['has_configured_sites'] ?? false)
+                        ? ($metrics['site_coverage']['coverage_rate'] >= 70 ? 'success' : 'warning')
+                        : 'gray'
+                )
                 ->icon('heroicon-o-map-pin'),
 
             Stat::make('Infractions (30 Days)', (string) $metrics['infractions'])

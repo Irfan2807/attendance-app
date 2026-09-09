@@ -30,8 +30,8 @@ class StaffAttendanceOverviewStatsWidget extends BaseWidget
             [$todayStart, $todayEnd] = AttendanceWindowService::operationalDayRange();
             $thisMonth = Carbon::now()->startOfMonth();
 
-            // Total staff (excluding managers)
-            $totalStaff = User::where('role', Role::Staff->value)->count();
+            // Total active staff (excluding managers)
+            $totalStaff = User::where('role', Role::Staff->value)->where('is_active', true)->count();
 
             // Staff who clocked in today
             $staffTodayCount = Attendance::whereHas('user', fn ($q) => $q->where('role', Role::Staff->value))
