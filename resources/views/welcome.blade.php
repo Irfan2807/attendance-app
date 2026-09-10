@@ -58,10 +58,10 @@
 
     <!-- Company Overview & Mission Bento -->
     <section class="page-shell company-intro">
-        <div class="intro-header text-center">
+        <div class="intro-header text-center mx-auto">
             <p class="eyebrow">About Tumpat Solutions</p>
             <h2 class="section-title">End-to-End Telecom Infrastructure Partners</h2>
-            <p class="section-copy max-w-3xl mx-auto">
+            <p class="section-copy max-w-3xl mx-auto text-center">
                 Established in May 2004, Tumpat Solutions Sdn Bhd has grown to become a cornerstone of Malaysia's telecommunications infrastructure, delivering high-stakes engineering for mobile operators, broadband providers, and technology vendors nationwide.
             </p>
         </div>
@@ -199,10 +199,10 @@
 
     <!-- Industry Sectors Served -->
     <section class="page-shell sectors-section">
-        <div class="text-center mb-12">
+        <div class="text-center mb-12 mx-auto">
             <p class="eyebrow">Clients & Sectors</p>
             <h2 class="section-title">Trusted Across Critical Industries</h2>
-            <p class="section-copy max-w-2xl mx-auto">
+            <p class="section-copy max-w-2xl mx-auto text-center">
                 We work alongside major telecommunication operators, tower companies, and government utility enterprises.
             </p>
         </div>

@@ -603,7 +603,14 @@ body {
     color: var(--slate-600);
     font-size: 1.05rem;
     line-height: 1.7;
-    margin: 0;
+    margin: 0 auto;
+}
+
+.text-center .section-copy,
+.intro-header .section-copy {
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .content-box {
@@ -623,6 +630,14 @@ body {
 
 .intro-header {
     margin-bottom: 48px;
+    text-align: center;
+}
+
+.intro-header .eyebrow,
+.intro-header .section-title {
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .bento-grid {
