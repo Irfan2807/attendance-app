@@ -67,7 +67,23 @@ class StaffLeaveRequestResource extends Resource
                             ->options(LeaveType::options())
                             ->required()
                             ->native(false)
-                            ->live(),
+                            ->live()
+                            ->helperText(function (Forms\Get $get) {
+                                $type = $get('leave_type');
+                                if (! $type) {
+                                    return null;
+                                }
+                                $user = Auth::user();
+                                $remaining = $user?->remainingLeave($type);
+                                $quota = $user?->leaveQuota($type);
+                                if ($remaining !== null) {
+                                    return "Available balance for " . now()->year . ": {$remaining} / {$quota} days remaining.";
+                                }
+                                if ($type === LeaveType::UnpaidLeave->value) {
+                                    return "Unpaid leave does not consume any quota.";
+                                }
+                                return null;
+                            }),
 
                         Forms\Components\TextInput::make('days_count')
                             ->label('Total Days')
@@ -76,6 +92,20 @@ class StaffLeaveRequestResource extends Resource
                             ->step(0.5)
                             ->minValue(0.5)
                             ->required()
+                            ->rules([
+                                fn (Forms\Get $get) => function (string $attribute, $value, \Closure $fail) use ($get) {
+                                    $type = $get('leave_type');
+                                    if (! $type) {
+                                        return;
+                                    }
+                                    $user = Auth::user();
+                                    $remaining = $user?->remainingLeave($type);
+                                    if ($remaining !== null && (float) $value > $remaining) {
+                                        $label = LeaveType::tryFrom($type)?->label() ?? 'Leave';
+                                        $fail("Insufficient {$label} balance. You only have {$remaining} day(s) remaining for " . now()->year . ". Please adjust your dates or apply for Unpaid Leave.");
+                                    }
+                                },
+                            ])
                             ->helperText('e.g. 1.0 for full day, 0.5 for half day.'),
 
                         Forms\Components\DatePicker::make('start_date')
@@ -199,6 +229,13 @@ class StaffLeaveRequestResource extends Resource
                     ->visible(fn ($record) => $record->isPending()),
             ])
             ->bulkActions([]);
+    }
+
+    public static function getWidgets(): array
+    {
+        return [
+            \App\Filament\Staff\Widgets\StaffLeaveBalanceWidget::class,
+        ];
     }
 
     public static function getPages(): array

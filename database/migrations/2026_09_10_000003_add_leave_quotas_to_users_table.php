@@ -12,13 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->foreignId('manager_id')
-                ->nullable()
-                ->after('role')
-                ->constrained('users')
-                ->nullOnDelete();
-
-            $table->index('manager_id');
+            $table->decimal('annual_leave_quota', 4, 1)->default(14.0)->after('incomplete_clock_out_count');
+            $table->decimal('medical_leave_quota', 4, 1)->default(14.0)->after('annual_leave_quota');
+            $table->decimal('hospitalization_quota', 4, 1)->default(60.0)->after('medical_leave_quota');
         });
     }
 
@@ -28,10 +24,11 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropForeign(['manager_id']);
-            $table->dropIndex(['manager_id']);
-            $table->dropColumn('manager_id');
+            $table->dropColumn([
+                'annual_leave_quota',
+                'medical_leave_quota',
+                'hospitalization_quota',
+            ]);
         });
     }
 };
-

@@ -3,6 +3,8 @@
 namespace App\Models;
 
 // Add these Filament imports
+use App\Enums\LeaveStatus;
+use App\Enums\LeaveType;
 use App\Enums\Role;
 use Carbon\Carbon;
 use Filament\Models\Contracts\FilamentUser;
@@ -35,6 +37,16 @@ class User extends Authenticatable implements FilamentUser
         'manager_id',
         'is_active',
         'incomplete_clock_out_count',
+        'annual_leave_quota',
+        'medical_leave_quota',
+        'hospitalization_quota',
+    ];
+
+    /** @var array<string, mixed> */
+    protected $attributes = [
+        'annual_leave_quota' => 14.0,
+        'medical_leave_quota' => 14.0,
+        'hospitalization_quota' => 60.0,
     ];
 
     /** @var array<string> */
@@ -49,6 +61,9 @@ class User extends Authenticatable implements FilamentUser
         'role' => Role::class,
         'manager_id' => 'integer',
         'is_active' => 'boolean',
+        'annual_leave_quota' => 'float',
+        'medical_leave_quota' => 'float',
+        'hospitalization_quota' => 'float',
     ];
 
     /**
@@ -134,6 +149,52 @@ class User extends Authenticatable implements FilamentUser
             ->whereDate('start_date', '<=', $dateStr)
             ->whereDate('end_date', '>=', $dateStr)
             ->exists();
+    }
+
+    public function leaveQuota(LeaveType|string $type): ?float
+    {
+        $typeVal = $type instanceof LeaveType ? $type->value : (string) $type;
+
+        return match ($typeVal) {
+            LeaveType::AnnualLeave->value => (float) ($this->annual_leave_quota ?? 14.0),
+            LeaveType::MedicalLeave->value => (float) ($this->medical_leave_quota ?? 14.0),
+            LeaveType::Hospitalization->value => (float) ($this->hospitalization_quota ?? 60.0),
+            default => null, // Unpaid and Emergency do not have a fixed quota cap
+        };
+    }
+
+    public function approvedLeaveTaken(LeaveType|string $type, ?int $year = null): float
+    {
+        $typeVal = $type instanceof LeaveType ? $type->value : (string) $type;
+        $targetYear = $year ?? now()->year;
+
+        return (float) $this->leaveRequests()
+            ->where('leave_type', $typeVal)
+            ->where('status', LeaveStatus::Approved->value)
+            ->whereYear('start_date', $targetYear)
+            ->sum('days_count');
+    }
+
+    public function remainingLeave(LeaveType|string $type, ?int $year = null): ?float
+    {
+        $quota = $this->leaveQuota($type);
+        if ($quota === null) {
+            return null; // Unlimited (Unpaid / Emergency)
+        }
+
+        $taken = $this->approvedLeaveTaken($type, $year);
+
+        return max(0.0, round($quota - $taken, 1));
+    }
+
+    public function hasSufficientLeave(LeaveType|string $type, float $days, ?int $year = null): bool
+    {
+        $remaining = $this->remainingLeave($type, $year);
+        if ($remaining === null) {
+            return true;
+        }
+
+        return $remaining >= $days;
     }
 
     // The Gatekeeper Logic

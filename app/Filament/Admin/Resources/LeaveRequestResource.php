@@ -86,6 +86,34 @@ class LeaveRequestResource extends Resource
                             ->columnSpanFull(),
                     ])->columns(2),
 
+                Forms\Components\Section::make('Applicant Leave Balances')
+                    ->description('Current year quota usage for this employee.')
+                    ->schema([
+                        Forms\Components\Placeholder::make('annual_leave_balance')
+                            ->label('Annual Leave Balance')
+                            ->content(function (?LeaveRequest $record): string {
+                                if (! $record?->user) {
+                                    return '—';
+                                }
+                                $remaining = $record->user->remainingLeave(LeaveType::AnnualLeave, $record->start_date?->year);
+                                $quota = $record->user->leaveQuota(LeaveType::AnnualLeave);
+                                $taken = $record->user->approvedLeaveTaken(LeaveType::AnnualLeave, $record->start_date?->year);
+                                return "{$remaining} / {$quota} days remaining ({$taken} days used)";
+                            }),
+
+                        Forms\Components\Placeholder::make('medical_leave_balance')
+                            ->label('Medical Leave (MC) Balance')
+                            ->content(function (?LeaveRequest $record): string {
+                                if (! $record?->user) {
+                                    return '—';
+                                }
+                                $remaining = $record->user->remainingLeave(LeaveType::MedicalLeave, $record->start_date?->year);
+                                $quota = $record->user->leaveQuota(LeaveType::MedicalLeave);
+                                $taken = $record->user->approvedLeaveTaken(LeaveType::MedicalLeave, $record->start_date?->year);
+                                return "{$remaining} / {$quota} days remaining ({$taken} days used)";
+                            }),
+                    ])->columns(2),
+
                 Forms\Components\Section::make('Attached Supporting Evidence')
                     ->schema([
                         Forms\Components\FileUpload::make('attachment_path')

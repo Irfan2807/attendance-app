@@ -100,6 +100,37 @@ class StaffUserResource extends Resource
                     ->dehydrated(fn ($state) => filled($state))
                     ->required(fn (string $context): bool => $context === 'create')
                     ->minLength(8),
+
+                Forms\Components\Section::make('Leave Entitlements & Quotas (Yearly)')
+                    ->description('Yearly paid leave allocations for this staff member.')
+                    ->schema([
+                        Forms\Components\TextInput::make('annual_leave_quota')
+                            ->label('Annual Leave')
+                            ->numeric()
+                            ->default(14.0)
+                            ->step(0.5)
+                            ->suffix('days')
+                            ->required()
+                            ->disabled(fn () => Auth::user()?->isManager()),
+
+                        Forms\Components\TextInput::make('medical_leave_quota')
+                            ->label('Medical Leave (MC)')
+                            ->numeric()
+                            ->default(14.0)
+                            ->step(0.5)
+                            ->suffix('days')
+                            ->required()
+                            ->disabled(fn () => Auth::user()?->isManager()),
+
+                        Forms\Components\TextInput::make('hospitalization_quota')
+                            ->label('Hospitalization')
+                            ->numeric()
+                            ->default(60.0)
+                            ->step(0.5)
+                            ->suffix('days')
+                            ->required()
+                            ->disabled(fn () => Auth::user()?->isManager()),
+                    ])->columns(3),
             ]);
     }
 
@@ -191,6 +222,27 @@ class StaffUserResource extends Resource
                         ->badge()
                         ->color(fn ($state): string => ($state ?? 0) > 0 ? 'danger' : 'success'),
                 ])->columns(2),
+
+            Infolists\Components\Section::make('Leave Quotas & Balances (' . now()->year . ')')
+                ->schema([
+                    Infolists\Components\TextEntry::make('annual_leave_quota')
+                        ->label('Annual Leave')
+                        ->formatStateUsing(fn ($record) => "{$record->remainingLeave(\App\Enums\LeaveType::AnnualLeave)} / {$record->leaveQuota(\App\Enums\LeaveType::AnnualLeave)} Days Remaining")
+                        ->badge()
+                        ->color('success'),
+
+                    Infolists\Components\TextEntry::make('medical_leave_quota')
+                        ->label('Medical Leave (MC)')
+                        ->formatStateUsing(fn ($record) => "{$record->remainingLeave(\App\Enums\LeaveType::MedicalLeave)} / {$record->leaveQuota(\App\Enums\LeaveType::MedicalLeave)} Days Remaining")
+                        ->badge()
+                        ->color('info'),
+
+                    Infolists\Components\TextEntry::make('hospitalization_quota')
+                        ->label('Hospitalization')
+                        ->formatStateUsing(fn ($record) => "{$record->remainingLeave(\App\Enums\LeaveType::Hospitalization)} / {$record->leaveQuota(\App\Enums\LeaveType::Hospitalization)} Days Remaining")
+                        ->badge()
+                        ->color('warning'),
+                ])->columns(3),
         ]);
     }
 
