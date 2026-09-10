@@ -23,7 +23,7 @@ class VehicleServiceAlertWidget extends BaseWidget
 
     protected function getTableHeading(): ?string
     {
-        return '🚨 Vehicle Service Alerts';
+        return '🚨 Fleet Compliance Alerts (Service & Road Tax)';
     }
 
     public function table(Table $table): Table
@@ -34,7 +34,11 @@ class VehicleServiceAlertWidget extends BaseWidget
                     ->where('is_active', true)
                     ->where(function ($q) {
                         $q->whereRaw('(next_service_mileage - current_mileage) <= 500')
-                          ->orWhereRaw('current_mileage >= next_service_mileage');
+                          ->orWhereRaw('current_mileage >= next_service_mileage')
+                          ->orWhere(function ($rq) {
+                              $rq->whereNotNull('road_tax_expiry')
+                                 ->where('road_tax_expiry', '<=', now()->addDays(30)->toDateString());
+                          });
                     })
             )
             ->columns([
@@ -47,37 +51,44 @@ class VehicleServiceAlertWidget extends BaseWidget
 
                 Tables\Columns\TextColumn::make('current_mileage')
                     ->label('Current')
-                    ->formatStateUsing(fn($state) => number_format($state) . ' KM'),
+                    ->formatStateUsing(fn($state) => number_format((float) $state) . ' KM'),
 
                 Tables\Columns\TextColumn::make('next_service_mileage')
                     ->label('Service Due')
-                    ->formatStateUsing(fn($state) => number_format($state) . ' KM'),
+                    ->formatStateUsing(fn($state) => number_format((float) $state) . ' KM'),
 
-                Tables\Columns\TextColumn::make('status')
-                    ->label('Status')
-                    ->getStateUsing(fn($record) => $record->isServiceOverdue() ? 'OVERDUE' : 'DUE SOON')
+                Tables\Columns\TextColumn::make('road_tax_expiry')
+                    ->label('Road Tax')
+                    ->date('d/m/Y')
+                    ->placeholder('Not Set')
+                    ->description(fn ($record) => $record->road_tax_expiry ? $record->roadTaxStatusLabel() : null)
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'OVERDUE' => 'danger',
-                        'DUE SOON' => 'warning',
-                        default => 'gray',
-                    }),
+                    ->color(fn ($record) => $record->roadTaxBadgeColor()),
 
-                Tables\Columns\TextColumn::make('km_remaining')
-                    ->label('KM Remaining')
-                    ->getStateUsing(fn ($record) => $record->serviceMileageDifference())
-                    ->formatStateUsing(function ($state): string {
-                        if ($state < 0) {
-                            return 'Overdue by ' . number_format(abs($state)) . ' KM';
-                        }
-                        if ($state === 0) {
-                            return 'Due Now (0 KM)';
+                Tables\Columns\TextColumn::make('alert_types')
+                    ->label('Alerts')
+                    ->getStateUsing(function ($record): array {
+                        $alerts = [];
+                        if ($record->isServiceOverdue()) {
+                            $alerts[] = 'SERVICE OVERDUE';
+                        } elseif ($record->isServiceDueSoon()) {
+                            $alerts[] = 'SERVICE DUE';
                         }
 
-                        return number_format($state) . ' KM';
+                        if ($record->isRoadTaxExpired()) {
+                            $alerts[] = 'ROAD TAX EXPIRED';
+                        } elseif ($record->isRoadTaxExpiringSoon()) {
+                            $alerts[] = 'ROAD TAX DUE';
+                        }
+
+                        return $alerts ?: ['OK'];
                     })
-                    ->color(fn ($state) => $state <= 0 ? 'danger' : 'warning')
-                    ->weight('bold'),
+                    ->badge()
+                    ->color(fn (string $state): string => match (true) {
+                        str_contains($state, 'EXPIRED') || str_contains($state, 'OVERDUE') => 'danger',
+                        str_contains($state, 'DUE') => 'warning',
+                        default => 'success',
+                    }),
             ])
             ->actions([
                 Tables\Actions\Action::make('update_service')
@@ -101,6 +112,35 @@ class VehicleServiceAlertWidget extends BaseWidget
 
                         \Filament\Notifications\Notification::make()
                             ->title('Service Updated')
+                            ->success()
+                            ->send();
+                    }),
+
+                Tables\Actions\Action::make('renew_road_tax')
+                    ->label('Renew Road Tax')
+                    ->icon('heroicon-o-document-check')
+                    ->color('info')
+                    ->form([
+                        \Filament\Forms\Components\DatePicker::make('road_tax_expiry')
+                            ->label('New Expiry Date')
+                            ->required()
+                            ->default(fn ($record) => $record->road_tax_expiry ? $record->road_tax_expiry->copy()->addYear() : now()->addYear()),
+
+                        \Filament\Forms\Components\TextInput::make('road_tax_amount')
+                            ->label('Renewal Cost (RM)')
+                            ->numeric()
+                            ->prefix('RM'),
+
+                        \Filament\Forms\Components\FileUpload::make('road_tax_document')
+                            ->label('Upload Digital Road Tax / Grant')
+                            ->directory('road-taxes')
+                            ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/webp']),
+                    ])
+                    ->action(function ($record, array $data) {
+                        $record->update($data);
+
+                        \Filament\Notifications\Notification::make()
+                            ->title('Road Tax Renewed')
                             ->success()
                             ->send();
                     }),

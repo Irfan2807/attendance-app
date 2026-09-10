@@ -84,6 +84,34 @@ class VehicleResource extends Resource
                             ->helperText('Set when service is due'),
                     ])->columns(2),
 
+                Forms\Components\Section::make('Road Tax & Compliance')
+                    ->description('Vehicle road tax (LKM) validity and renewal records.')
+                    ->schema([
+                        Forms\Components\DatePicker::make('road_tax_expiry')
+                            ->label('Road Tax Expiry Date')
+                            ->displayFormat('d/m/Y')
+                            ->native(false)
+                            ->placeholder('Select expiration date')
+                            ->helperText(fn ($record) => $record?->road_tax_expiry ? $record->roadTaxStatusLabel() : 'Set the official road tax expiry date'),
+
+                        Forms\Components\TextInput::make('road_tax_amount')
+                            ->label('Road Tax Cost (RM)')
+                            ->numeric()
+                            ->prefix('RM')
+                            ->step(0.01)
+                            ->placeholder('e.g. 180.00'),
+
+                        Forms\Components\FileUpload::make('road_tax_document')
+                            ->label('Digital Road Tax / Grant Slip')
+                            ->directory('road-taxes')
+                            ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/webp'])
+                            ->maxSize(10240)
+                            ->openable()
+                            ->downloadable()
+                            ->previewable()
+                            ->columnSpanFull(),
+                    ])->columns(2),
+
                 Forms\Components\Section::make('Additional Information')
                     ->schema([
                         Forms\Components\Textarea::make('notes')
@@ -139,6 +167,15 @@ class VehicleResource extends Resource
                     })
                     ->weight('bold'),
 
+                Tables\Columns\TextColumn::make('road_tax_expiry')
+                    ->label('Road Tax Expiry')
+                    ->date('d/m/Y')
+                    ->sortable()
+                    ->placeholder('Not Set')
+                    ->description(fn ($record) => $record->road_tax_expiry ? $record->roadTaxStatusLabel() : null)
+                    ->badge()
+                    ->color(fn ($record) => $record->roadTaxBadgeColor()),
+
                 Tables\Columns\IconColumn::make('is_active')
                     ->label('Active')
                     ->boolean(),
@@ -162,6 +199,16 @@ class VehicleResource extends Resource
                 Tables\Filters\Filter::make('service_overdue')
                     ->label('Service Overdue')
                     ->query(fn ($query) => $query->whereRaw('current_mileage >= next_service_mileage')),
+
+                Tables\Filters\Filter::make('road_tax_expiring_soon')
+                    ->label('Road Tax Expiring Soon (30 Days)')
+                    ->query(fn ($query) => $query->whereNotNull('road_tax_expiry')
+                        ->whereBetween('road_tax_expiry', [now()->toDateString(), now()->addDays(30)->toDateString()])),
+
+                Tables\Filters\Filter::make('road_tax_expired')
+                    ->label('Road Tax Expired')
+                    ->query(fn ($query) => $query->whereNotNull('road_tax_expiry')
+                        ->where('road_tax_expiry', '<', now()->toDateString())),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
