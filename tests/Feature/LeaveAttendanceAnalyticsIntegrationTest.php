@@ -124,3 +124,4 @@ class LeaveAttendanceAnalyticsIntegrationTest extends TestCase
         $response->assertSee('On Leave (Medical Leave (MC))');
     }
 }
+

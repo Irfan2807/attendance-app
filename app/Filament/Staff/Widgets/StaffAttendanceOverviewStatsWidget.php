@@ -81,14 +81,16 @@ class StaffAttendanceOverviewStatsWidget extends BaseWidget
 
             // Pending shift check-ins + pending leave requests
             $currentUserId = Auth::user()?->id;
+            $isAdminViewer = Auth::user()?->isAdmin() ?? false;
+
             $pendingAttendanceCount = Attendance::whereIn('status', ['pending', 'temporary'])
-                ->whereHas('user', fn ($q) => $q->where('role', Role::Staff->value))
+                ->when(! $isAdminViewer, fn ($q) => $q->whereHas('user', fn ($uq) => $uq->where('role', Role::Staff->value)))
                 ->where('user_id', '!=', $currentUserId)
                 ->count();
 
             $pendingLeaveCount = \App\Models\LeaveRequest::where('status', \App\Enums\LeaveStatus::Pending->value)
                 ->where('user_id', '!=', $currentUserId)
-                ->whereHas('user', fn ($q) => $q->where('role', Role::Staff->value))
+                ->when(! $isAdminViewer, fn ($q) => $q->whereHas('user', fn ($uq) => $uq->where('role', Role::Staff->value)))
                 ->count();
 
             $totalPendingCount = $pendingAttendanceCount + $pendingLeaveCount;

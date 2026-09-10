@@ -150,5 +150,67 @@ class StaffLeaveRequestResourceTest extends TestCase
         $response->assertSuccessful();
         $response->assertSee($staff->name);
     }
+
+    public function test_director_can_see_and_approve_manager_leave_in_admin_panel(): void
+    {
+        $director = User::factory()->create(['name' => 'Director HR', 'role' => 1]);
+        $manager = User::factory()->create(['name' => 'Operations Manager', 'role' => 2]);
+
+        $leave = LeaveRequest::create([
+            'user_id' => $manager->id,
+            'leave_type' => LeaveType::MedicalLeave,
+            'start_date' => '2026-10-01',
+            'end_date' => '2026-10-02',
+            'days_count' => 2.0,
+            'reason' => 'Manager medical leave with hospital slip',
+            'status' => LeaveStatus::Pending,
+        ]);
+
+        $response = $this->actingAs($director)->get('/admin/leave-requests');
+        $response->assertSuccessful();
+        $response->assertSee('Operations Manager');
+
+        // Approve leave
+        $leave->update([
+            'status' => LeaveStatus::Approved,
+            'actioned_by' => $director->id,
+            'actioned_at' => now(),
+        ]);
+
+        $this->assertDatabaseHas('leave_requests', [
+            'id' => $leave->id,
+            'status' => 'approved',
+            'actioned_by' => $director->id,
+        ]);
+
+        $this->assertTrue($manager->isOnApprovedLeave('2026-10-01'));
+    }
+
+    public function test_director_can_see_manager_leave_in_staff_approval_portal_while_peer_manager_cannot(): void
+    {
+        $director = User::factory()->create(['name' => 'Company Director', 'role' => 1]);
+        $manager1 = User::factory()->create(['name' => 'Site Manager A', 'role' => 2]);
+        $manager2 = User::factory()->create(['name' => 'Site Manager B', 'role' => 2]);
+
+        LeaveRequest::create([
+            'user_id' => $manager1->id,
+            'leave_type' => LeaveType::AnnualLeave,
+            'start_date' => '2026-10-10',
+            'end_date' => '2026-10-10',
+            'days_count' => 1.0,
+            'reason' => 'Manager A urgent family leave',
+            'status' => LeaveStatus::Pending,
+        ]);
+
+        // Peer manager cannot see Manager A's leave
+        $peerResponse = $this->actingAs($manager2)->get('/staff/leave-approvals');
+        $peerResponse->assertSuccessful();
+        $peerResponse->assertDontSee('Manager A urgent family leave');
+
+        // Director can see Manager A's leave
+        $directorResponse = $this->actingAs($director)->get('/staff/leave-approvals');
+        $directorResponse->assertSuccessful();
+        $directorResponse->assertSee('Manager A urgent family leave');
+    }
 }
 

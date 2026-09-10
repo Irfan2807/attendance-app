@@ -98,16 +98,11 @@ class StaffUserResource extends Resource
                     Infolists\Components\TextEntry::make('role')
                         ->label('Role')
                         ->badge()
-                        ->formatStateUsing(fn (int $state): string => match ($state) {
-                            1 => 'Super Admin',
-                            2 => 'Manager',
-                            3 => 'Staff',
-                            default => 'Unknown',
-                        })
-                        ->color(fn (int $state): string => match ($state) {
-                            1 => 'danger',
-                            2 => 'warning',
-                            3 => 'success',
+                        ->formatStateUsing(fn ($state): string => Role::tryFrom($state instanceof Role ? $state->value : (int) $state)?->label() ?? 'Unknown')
+                        ->color(fn ($state): string => match ($state instanceof Role ? $state->value : (int) $state) {
+                            Role::SuperAdmin->value => 'danger',
+                            Role::Manager->value => 'warning',
+                            Role::Staff->value => 'success',
                             default => 'gray',
                         }),
 
@@ -189,16 +184,11 @@ class StaffUserResource extends Resource
 
                 Tables\Columns\TextColumn::make('role')
                     ->badge()
-                    ->formatStateUsing(fn ($state): string => match ($state instanceof Role ? $state->value : (int) $state) {
-                        1 => 'Super Admin',
-                        2 => 'Manager',
-                        3 => 'Staff',
-                        default => 'Staff',
-                    })
+                    ->formatStateUsing(fn ($state): string => Role::tryFrom($state instanceof Role ? $state->value : (int) $state)?->label() ?? 'Staff')
                     ->color(fn ($state): string => match ($state instanceof Role ? $state->value : (int) $state) {
-                        1 => 'danger',
-                        2 => 'warning',
-                        3 => 'success',
+                        Role::SuperAdmin->value => 'danger',
+                        Role::Manager->value => 'warning',
+                        Role::Staff->value => 'success',
                         default => 'gray',
                     }),
 

@@ -8,9 +8,11 @@ use App\Filament\Admin\Resources\LeaveRequestResource\Pages;
 use App\Models\LeaveRequest;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 
 class LeaveRequestResource extends Resource
@@ -31,6 +33,26 @@ class LeaveRequestResource extends Resource
     public static function canCreate(): bool
     {
         return false;
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        $count = static::getModel()::where('status', LeaveStatus::Pending->value)->count();
+
+        return $count > 0 ? (string) $count : null;
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return 'warning';
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->with(['user', 'actionedBy'])
+            ->orderByRaw("CASE WHEN status = 'pending' THEN 1 ELSE 2 END")
+            ->orderByDesc('created_at');
     }
 
     public static function form(Form $form): Form
@@ -162,6 +184,54 @@ class LeaveRequestResource extends Resource
                     ->color('info')
                     ->visible(fn (LeaveRequest $record) => !empty($record->attachment_path))
                     ->url(fn (LeaveRequest $record) => $record->attachment_url, shouldOpenInNewTab: true),
+
+                Tables\Actions\Action::make('approve')
+                    ->label('Approve')
+                    ->icon('heroicon-o-check-circle')
+                    ->color('success')
+                    ->visible(fn (LeaveRequest $record) => $record->isPending() && $record->user_id !== Auth::user()?->id)
+                    ->requiresConfirmation()
+                    ->modalHeading('Approve Leave Request')
+                    ->modalDescription(fn (LeaveRequest $record) => "Approve {$record->days_count} day(s) {$record->leave_type->label()} for {$record->user?->name}?")
+                    ->action(function (LeaveRequest $record) {
+                        $record->update([
+                            'status' => LeaveStatus::Approved,
+                            'actioned_by' => Auth::user()?->id,
+                            'actioned_at' => now(),
+                        ]);
+
+                        Notification::make()
+                            ->title('Leave Approved')
+                            ->body("Leave request for {$record->user?->name} has been approved.")
+                            ->success()
+                            ->send();
+                    }),
+
+                Tables\Actions\Action::make('reject')
+                    ->label('Reject')
+                    ->icon('heroicon-o-x-circle')
+                    ->color('danger')
+                    ->visible(fn (LeaveRequest $record) => $record->isPending() && $record->user_id !== Auth::user()?->id)
+                    ->form([
+                        Forms\Components\Textarea::make('rejection_reason')
+                            ->label('Rejection Reason')
+                            ->required()
+                            ->placeholder('State reason (e.g., inadequate staffing, incomplete documentation)'),
+                    ])
+                    ->action(function (LeaveRequest $record, array $data) {
+                        $record->update([
+                            'status' => LeaveStatus::Rejected,
+                            'actioned_by' => Auth::user()?->id,
+                            'actioned_at' => now(),
+                            'rejection_reason' => $data['rejection_reason'],
+                        ]);
+
+                        Notification::make()
+                            ->title('Leave Rejected')
+                            ->body("Leave request for {$record->user?->name} was marked rejected.")
+                            ->danger()
+                            ->send();
+                    }),
 
                 Tables\Actions\ViewAction::make(),
             ])

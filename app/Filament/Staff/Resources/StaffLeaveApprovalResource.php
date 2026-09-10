@@ -64,11 +64,17 @@ class StaffLeaveApprovalResource extends Resource
     {
         // Governance rules:
         // 1. Managers can only approve regular Staff (role = 3) to prevent peer-manager approvals.
-        // 2. Cannot approve own requests.
-        return parent::getEloquentQuery()
+        // 2. Director / HR (Super Admin) can approve both Managers and Staff.
+        // 3. Cannot approve own requests.
+        $query = parent::getEloquentQuery()
             ->with(['user', 'actionedBy'])
-            ->where('user_id', '!=', Auth::user()?->id)
-            ->whereHas('user', fn ($q) => $q->where('role', Role::Staff->value))
+            ->where('user_id', '!=', Auth::user()?->id);
+
+        if (! Auth::user()?->isAdmin()) {
+            $query->whereHas('user', fn ($q) => $q->where('role', Role::Staff->value));
+        }
+
+        return $query
             ->orderByRaw("CASE WHEN status = 'pending' THEN 1 ELSE 2 END")
             ->orderByDesc('created_at');
     }
