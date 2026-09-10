@@ -36,15 +36,47 @@ class AttendanceAnalyticsService
             ->distinct('user_id')
             ->count('user_id');
 
+        $startDateStr = $start->toDateString();
+        $onLeaveStaff = User::where('role', Role::Staff->value)
+            ->where('is_active', true)
+            ->whereHas('leaveRequests', function ($q) use ($startDateStr) {
+                $q->where('status', \App\Enums\LeaveStatus::Approved->value)
+                    ->whereDate('start_date', '<=', $startDateStr)
+                    ->whereDate('end_date', '>=', $startDateStr);
+            })
+            ->count();
+
+        $expectedStaff = max(0, $totalStaff - $onLeaveStaff);
+        $adjustedRate = $expectedStaff > 0
+            ? round(($presentStaff / $expectedStaff) * 100, 1)
+            : ($totalStaff > 0 ? 100.0 : 0.0);
+
         $rate = $totalStaff > 0
             ? round(($presentStaff / $totalStaff) * 100, 1)
             : 0.0;
 
         return [
             'rate' => $rate,
+            'adjusted_rate' => $adjustedRate,
             'present' => $presentStaff,
+            'on_leave' => $onLeaveStaff,
+            'expected' => $expectedStaff,
             'total' => $totalStaff,
         ];
+    }
+
+    public static function staffOnLeaveCount(?Carbon $date = null): int
+    {
+        $dateStr = ($date ?? now())->toDateString();
+
+        return User::where('role', Role::Staff->value)
+            ->where('is_active', true)
+            ->whereHas('leaveRequests', function ($q) use ($dateStr) {
+                $q->where('status', \App\Enums\LeaveStatus::Approved->value)
+                    ->whereDate('start_date', '<=', $dateStr)
+                    ->whereDate('end_date', '>=', $dateStr);
+            })
+            ->count();
     }
 
     public static function attendanceRateTrend(int $days, ?Carbon $reference = null): array

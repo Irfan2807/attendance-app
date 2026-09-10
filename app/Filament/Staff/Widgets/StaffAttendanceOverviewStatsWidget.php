@@ -30,7 +30,7 @@ class StaffAttendanceOverviewStatsWidget extends BaseWidget
     protected function getStats(): array
     {
         // Cache stats for 2 minutes to reduce repeated dashboard load while keeping fresh counts.
-        return Cache::remember('staff_stats_v3_' . Auth::id(), 120, function () {
+        return Cache::remember('staff_stats_v4_' . (Auth::user()?->id ?? 0), 120, function () {
             $dbDriver = DB::connection()->getDriverName();
             [$todayStart, $todayEnd] = AttendanceWindowService::operationalDayRange();
             $thisMonth = Carbon::now()->startOfMonth();
@@ -45,6 +45,9 @@ class StaffAttendanceOverviewStatsWidget extends BaseWidget
                 ->select('user_id')
                 ->distinct()
                 ->count('user_id');
+
+            // Staff on approved leave today
+            $onLeaveTodayCount = AttendanceAnalyticsService::staffOnLeaveCount($todayStart);
 
             // Attendance rate today
             $attendanceRateToday = $totalStaff > 0 ? round(($staffTodayCount / $totalStaff) * 100) : 0;
@@ -76,15 +79,31 @@ class StaffAttendanceOverviewStatsWidget extends BaseWidget
             // Site coverage for today
             $coverage = AttendanceAnalyticsService::siteCoverage($todayStart, $todayEnd);
 
-            // Pending approvals (staff shifts awaiting review)
-            $pendingCount = Attendance::whereIn('status', ['pending', 'temporary'])
+            // Pending shift check-ins + pending leave requests
+            $currentUserId = Auth::user()?->id;
+            $pendingAttendanceCount = Attendance::whereIn('status', ['pending', 'temporary'])
                 ->whereHas('user', fn ($q) => $q->where('role', Role::Staff->value))
-                ->where('user_id', '!=', Auth::id())
+                ->where('user_id', '!=', $currentUserId)
                 ->count();
+
+            $pendingLeaveCount = \App\Models\LeaveRequest::where('status', \App\Enums\LeaveStatus::Pending->value)
+                ->where('user_id', '!=', $currentUserId)
+                ->whereHas('user', fn ($q) => $q->where('role', Role::Staff->value))
+                ->count();
+
+            $totalPendingCount = $pendingAttendanceCount + $pendingLeaveCount;
+
+            $rateDescription = $onLeaveTodayCount > 0
+                ? "{$staffTodayCount} present · {$onLeaveTodayCount} on leave ({$totalStaff} active)"
+                : "{$staffTodayCount} of {$totalStaff} staff";
+
+            $pendingDescription = $pendingLeaveCount > 0
+                ? "{$pendingAttendanceCount} shifts · {$pendingLeaveCount} leaves"
+                : ($totalPendingCount > 0 ? 'Awaiting review' : 'All caught up');
 
             return [
                 Stat::make('Attendance Rate (Today)', $attendanceRateToday . '%')
-                    ->description($staffTodayCount . ' of ' . $totalStaff . ' staff')
+                    ->description($rateDescription)
                     ->color($attendanceRateToday >= 80 ? 'success' : ($attendanceRateToday >= 60 ? 'warning' : 'danger'))
                     ->icon('heroicon-o-users'),
 
@@ -105,9 +124,9 @@ class StaffAttendanceOverviewStatsWidget extends BaseWidget
                     ->color('info')
                     ->icon('heroicon-o-clock'),
 
-                Stat::make('Pending Approvals', $pendingCount)
-                    ->description('Awaiting review')
-                    ->color($pendingCount > 0 ? 'warning' : 'success')
+                Stat::make('Pending Approvals', $totalPendingCount)
+                    ->description($pendingDescription)
+                    ->color($totalPendingCount > 0 ? 'warning' : 'success')
                     ->icon('heroicon-o-exclamation-circle'),
             ];
         });

@@ -30,21 +30,16 @@ class StaffUserResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return Auth::user() && Auth::user()->role === 2;
         return Auth::user()?->isManagerOrAdmin() ?? false;
     }
 
     public static function canCreate(): bool
     {
-        return Auth::user() && Auth::user()->role === 2;
         return Auth::user()?->isManagerOrAdmin() ?? false;
     }
 
     public static function getEloquentQuery(): Builder
     {
-        // Managers may only view and manage role-3 (Staff) users.
-        return parent::getEloquentQuery()->where('role', 3);
-        // Managers view role-3 (Staff) users.
         return parent::getEloquentQuery()->where('role', Role::Staff->value);
     }
 
@@ -194,17 +189,39 @@ class StaffUserResource extends Resource
 
                 Tables\Columns\TextColumn::make('role')
                     ->badge()
-                    ->formatStateUsing(fn (int $state): string => match ($state) {
+                    ->formatStateUsing(fn ($state): string => match ($state instanceof Role ? $state->value : (int) $state) {
                         1 => 'Super Admin',
                         2 => 'Manager',
                         3 => 'Staff',
                         default => 'Staff',
                     })
-                    ->color(fn (int $state): string => match ($state) {
+                    ->color(fn ($state): string => match ($state instanceof Role ? $state->value : (int) $state) {
                         1 => 'danger',
                         2 => 'warning',
                         3 => 'success',
                         default => 'gray',
+                    }),
+
+                Tables\Columns\TextColumn::make('duty_status')
+                    ->label('Status')
+                    ->badge()
+                    ->getStateUsing(function (User $record): string {
+                        $today = now()->toDateString();
+                        $activeLeave = $record->relationLoaded('leaveRequests')
+                            ? $record->leaveRequests->first(fn ($l) => $l->status === \App\Enums\LeaveStatus::Approved && $l->start_date->toDateString() <= $today && $l->end_date->toDateString() >= $today)
+                            : $record->leaveRequests()->activeOnDate($today)->first();
+
+                        if ($activeLeave) {
+                            return 'On Leave (' . $activeLeave->leave_type->label() . ')';
+                        }
+
+                        return $record->is_active ? 'Active' : 'Inactive';
+                    })
+                    ->color(function (string $state): string {
+                        if (str_starts_with($state, 'On Leave')) {
+                            return 'warning';
+                        }
+                        return $state === 'Active' ? 'success' : 'gray';
                     }),
 
                 Tables\Columns\TextColumn::make('total_sessions')
@@ -237,7 +254,10 @@ class StaffUserResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->modifyQueryUsing(fn ($query) => $query->withCount('attendances')->with(['attendances' => fn ($q) => $q->whereNotNull('clock_out_time')]))
+            ->modifyQueryUsing(fn ($query) => $query->withCount('attendances')->with([
+                'attendances' => fn ($q) => $q->whereNotNull('clock_out_time'),
+                'leaveRequests' => fn ($q) => $q->where('status', \App\Enums\LeaveStatus::Approved->value),
+            ]))
             ->filters([
                 //
             ])

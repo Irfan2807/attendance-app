@@ -4,6 +4,7 @@ namespace App\Models;
 
 // Add these Filament imports
 use App\Enums\Role;
+use Carbon\Carbon;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -98,6 +99,22 @@ class User extends Authenticatable implements FilamentUser
     public function infractions(): HasMany
     {
         return $this->hasMany(AttendanceInfraction::class);
+    }
+
+    public function leaveRequests(): HasMany
+    {
+        return $this->hasMany(LeaveRequest::class);
+    }
+
+    public function isOnApprovedLeave(Carbon|string $date): bool
+    {
+        $dateStr = $date instanceof Carbon ? $date->toDateString() : Carbon::parse($date)->toDateString();
+
+        return $this->leaveRequests()
+            ->where('status', \App\Enums\LeaveStatus::Approved->value)
+            ->whereDate('start_date', '<=', $dateStr)
+            ->whereDate('end_date', '>=', $dateStr)
+            ->exists();
     }
 
     // The Gatekeeper Logic
