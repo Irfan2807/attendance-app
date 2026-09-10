@@ -40,7 +40,17 @@ class StaffUserResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->where('role', Role::Staff->value);
+        $query = parent::getEloquentQuery()->where('role', Role::Staff->value);
+
+        if (Auth::user()?->isManager()) {
+            $currentManagerId = Auth::user()?->id;
+            $query->where(function ($q) use ($currentManagerId) {
+                $q->where('manager_id', $currentManagerId)
+                  ->orWhereNull('manager_id');
+            });
+        }
+
+        return $query;
     }
 
     public static function form(Form $form): Form
@@ -67,13 +77,22 @@ class StaffUserResource extends Resource
 
                 Forms\Components\Select::make('role')
                     ->options([
-                        3 => 'Staff',
                         Role::Staff->value => Role::Staff->label(),
                     ])
-                    ->default(3)
                     ->default(Role::Staff->value)
                     ->required()
                     ->dehydrated(),
+
+                Forms\Components\Select::make('manager_id')
+                    ->label('Reporting Manager')
+                    ->relationship('manager', 'name', fn ($q) => $q->where('role', Role::Manager->value))
+                    ->default(fn () => Auth::user()?->isManager() ? Auth::user()?->id : null)
+                    ->disabled(fn () => Auth::user()?->isManager())
+                    ->dehydrated()
+                    ->searchable()
+                    ->preload()
+                    ->nullable()
+                    ->helperText(fn () => Auth::user()?->isManager() ? 'Assigned to you as direct supervisor' : 'Operational manager in charge of this staff'),
 
                 Forms\Components\TextInput::make('password')
                     ->password()
@@ -103,8 +122,13 @@ class StaffUserResource extends Resource
                             Role::SuperAdmin->value => 'danger',
                             Role::Manager->value => 'warning',
                             Role::Staff->value => 'success',
+                            Role::HR->value => 'info',
                             default => 'gray',
                         }),
+
+                    Infolists\Components\TextEntry::make('manager.name')
+                        ->label('Reporting Manager')
+                        ->placeholder('Unassigned'),
 
                     Infolists\Components\TextEntry::make('created_at')
                         ->label('Member Since')
@@ -189,8 +213,17 @@ class StaffUserResource extends Resource
                         Role::SuperAdmin->value => 'danger',
                         Role::Manager->value => 'warning',
                         Role::Staff->value => 'success',
+                        Role::HR->value => 'info',
                         default => 'gray',
                     }),
+
+                Tables\Columns\TextColumn::make('manager.name')
+                    ->label('Reporting Manager')
+                    ->placeholder('Unassigned')
+                    ->badge()
+                    ->color('gray')
+                    ->sortable()
+                    ->searchable(),
 
                 Tables\Columns\TextColumn::make('duty_status')
                     ->label('Status')
@@ -245,6 +278,7 @@ class StaffUserResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->modifyQueryUsing(fn ($query) => $query->withCount('attendances')->with([
+                'manager',
                 'attendances' => fn ($q) => $q->whereNotNull('clock_out_time'),
                 'leaveRequests' => fn ($q) => $q->where('status', \App\Enums\LeaveStatus::Approved->value),
             ]))

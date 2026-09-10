@@ -75,6 +75,14 @@ class UserResource extends Resource
                     ->required()
                     ->dehydrated(),
 
+                Forms\Components\Select::make('manager_id')
+                    ->label('Reporting Manager')
+                    ->relationship('manager', 'name', fn ($q) => $q->where('role', Role::Manager->value))
+                    ->searchable()
+                    ->preload()
+                    ->nullable()
+                    ->helperText('Assign operational supervisor for this employee'),
+
                 // 4. Password Hashing (CRITICAL: Do not remove this!)
                 Forms\Components\TextInput::make('password')
                     ->password()
@@ -110,8 +118,13 @@ class UserResource extends Resource
                             Role::SuperAdmin->value => 'danger',
                             Role::Manager->value => 'warning',
                             Role::Staff->value => 'success',
+                            Role::HR->value => 'info',
                             default => 'gray',
                         }),
+
+                    Infolists\Components\TextEntry::make('manager.name')
+                        ->label('Reporting Manager')
+                        ->placeholder('Unassigned'),
 
                     Infolists\Components\TextEntry::make('created_at')
                         ->label('Member Since')
@@ -196,8 +209,17 @@ class UserResource extends Resource
                         Role::SuperAdmin->value => 'danger',
                         Role::Manager->value => 'warning',
                         Role::Staff->value => 'success',
+                        Role::HR->value => 'info',
                         default => 'gray',
                     }),
+
+                Tables\Columns\TextColumn::make('manager.name')
+                    ->label('Reporting Manager')
+                    ->placeholder('Unassigned')
+                    ->badge()
+                    ->color('gray')
+                    ->sortable()
+                    ->searchable(),
 
                 Tables\Columns\TextColumn::make('total_sessions')
                     ->label('Sessions')
@@ -224,7 +246,7 @@ class UserResource extends Resource
                     ->label('Active')
                     ->sortable(),
             ])
-            ->modifyQueryUsing(fn ($query) => $query->withCount('attendances')->with(['attendances' => fn ($q) => $q->whereNotNull('clock_out_time')]))
+            ->modifyQueryUsing(fn ($query) => $query->withCount('attendances')->with(['manager', 'attendances' => fn ($q) => $q->whereNotNull('clock_out_time')]))
             ->filters([
                 Tables\Filters\SelectFilter::make('role')
                     ->options(Role::options()),

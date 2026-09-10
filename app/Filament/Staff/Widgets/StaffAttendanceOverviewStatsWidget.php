@@ -30,7 +30,7 @@ class StaffAttendanceOverviewStatsWidget extends BaseWidget
     protected function getStats(): array
     {
         // Cache stats for 2 minutes to reduce repeated dashboard load while keeping fresh counts.
-        return Cache::remember('staff_stats_v4_' . (Auth::user()?->id ?? 0), 120, function () {
+        return Cache::remember('staff_stats_v5_' . (Auth::user()?->id ?? 0), 120, function () {
             $dbDriver = DB::connection()->getDriverName();
             [$todayStart, $todayEnd] = AttendanceWindowService::operationalDayRange();
             $thisMonth = Carbon::now()->startOfMonth();
@@ -81,16 +81,28 @@ class StaffAttendanceOverviewStatsWidget extends BaseWidget
 
             // Pending shift check-ins + pending leave requests
             $currentUserId = Auth::user()?->id;
-            $isAdminViewer = Auth::user()?->isAdmin() ?? false;
+            $isManager = Auth::user()?->isManager() ?? false;
 
             $pendingAttendanceCount = Attendance::whereIn('status', ['pending', 'temporary'])
-                ->when(! $isAdminViewer, fn ($q) => $q->whereHas('user', fn ($uq) => $uq->where('role', Role::Staff->value)))
                 ->where('user_id', '!=', $currentUserId)
+                ->when($isManager, function ($q) use ($currentUserId) {
+                    $q->whereHas('user', function ($uq) use ($currentUserId) {
+                        $uq->where('role', Role::Staff->value)
+                           ->where(fn ($sub) => $sub->where('manager_id', $currentUserId)->orWhereNull('manager_id'));
+                    });
+                }, function ($q) {
+                    $q->whereHas('user', fn ($uq) => $uq->where('role', Role::Staff->value));
+                })
                 ->count();
 
             $pendingLeaveCount = \App\Models\LeaveRequest::where('status', \App\Enums\LeaveStatus::Pending->value)
                 ->where('user_id', '!=', $currentUserId)
-                ->when(! $isAdminViewer, fn ($q) => $q->whereHas('user', fn ($uq) => $uq->where('role', Role::Staff->value)))
+                ->when($isManager, function ($q) use ($currentUserId) {
+                    $q->whereHas('user', function ($uq) use ($currentUserId) {
+                        $uq->where('role', Role::Staff->value)
+                           ->where(fn ($sub) => $sub->where('manager_id', $currentUserId)->orWhereNull('manager_id'));
+                    });
+                })
                 ->count();
 
             $totalPendingCount = $pendingAttendanceCount + $pendingLeaveCount;

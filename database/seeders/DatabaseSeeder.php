@@ -18,35 +18,51 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // 1. Users
-        User::firstOrCreate(
+        $admin = User::firstOrCreate(
             ['phone' => '0123456789'],
             [
-                'name' => 'Admin',
+                'name' => 'Director Admin',
                 'password' => bcrypt('password'),
                 'role' => 1,
                 'is_active' => true,
             ]
         );
 
-        User::firstOrCreate(
+        $manager = User::firstOrCreate(
             ['phone' => '0198765432'],
             [
-                'name' => 'Manager',
+                'name' => 'Site Manager',
                 'password' => bcrypt('password'),
                 'role' => 2,
                 'is_active' => true,
             ]
         );
 
-        User::firstOrCreate(
-            ['phone' => '0111111111'],
+        $hr = User::firstOrCreate(
+            ['phone' => '0144444444'],
             [
-                'name' => 'Staff',
+                'name' => 'HR Executive',
                 'password' => bcrypt('password'),
-                'role' => 3,
+                'role' => 4,
                 'is_active' => true,
             ]
         );
+
+        $staff = User::firstOrCreate(
+            ['phone' => '0111111111'],
+            [
+                'name' => 'Field Staff',
+                'password' => bcrypt('password'),
+                'role' => 3,
+                'manager_id' => $manager->id,
+                'is_active' => true,
+            ]
+        );
+
+        // Ensure staff is linked to manager
+        if (! $staff->manager_id) {
+            $staff->update(['manager_id' => $manager->id]);
+        }
 
         // 2. Demo Sites
         Site::firstOrCreate(

@@ -34,16 +34,43 @@ class StaffAttendanceApprovalResource extends Resource
         return false; // Cannot create approvals manually
     }
 
+    public static function getNavigationBadge(): ?string
+    {
+        $count = static::getEloquentQuery()->count();
+        return $count > 0 ? (string) $count : null;
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return 'warning';
+    }
+
     public static function getEloquentQuery(): Builder
     {
-        // Show pending and temporary entries from field staff only, excluding own records.
-        // Peer manager approvals are prohibited.
-        return parent::getEloquentQuery()
+        // Governance rules:
+        // 1. Managers only approve their assigned subordinates (or unassigned staff).
+        // 2. HR and Director have company-wide approval visibility.
+        // 3. Self-approval is blocked.
+        $query = parent::getEloquentQuery()
             ->with(['user', 'approver'])
             ->whereIn('status', ['pending', 'temporary'])
-            ->whereHas('user', fn ($q) => $q->where('role', Role::Staff->value))
-            ->where('user_id', '!=', Auth::id())
-            ->orderByDesc('created_at');
+            ->where('user_id', '!=', Auth::user()?->id);
+
+        if (Auth::user()?->isManager()) {
+            $managerId = Auth::user()?->id;
+            $query->whereHas('user', function ($q) use ($managerId) {
+                $q->where('role', Role::Staff->value)
+                  ->where(function ($sub) use ($managerId) {
+                      $sub->where('manager_id', $managerId)
+                          ->orWhereNull('manager_id');
+                  });
+            });
+        } elseif (! Auth::user()?->isAdmin()) {
+            // HR Executive approves field staff
+            $query->whereHas('user', fn ($q) => $q->where('role', Role::Staff->value));
+        }
+
+        return $query->orderByDesc('created_at');
     }
 
     public static function form(Form $form): Form

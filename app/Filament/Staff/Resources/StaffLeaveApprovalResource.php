@@ -63,15 +63,22 @@ class StaffLeaveApprovalResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         // Governance rules:
-        // 1. Managers can only approve regular Staff (role = 3) to prevent peer-manager approvals.
-        // 2. Director / HR (Super Admin) can approve both Managers and Staff.
+        // 1. Managers only approve their assigned subordinates (or unassigned staff). Peer-manager approvals blocked.
+        // 2. HR Executive and Director can approve both Managers and Staff company-wide.
         // 3. Cannot approve own requests.
         $query = parent::getEloquentQuery()
             ->with(['user', 'actionedBy'])
             ->where('user_id', '!=', Auth::user()?->id);
 
-        if (! Auth::user()?->isAdmin()) {
-            $query->whereHas('user', fn ($q) => $q->where('role', Role::Staff->value));
+        if (Auth::user()?->isManager()) {
+            $managerId = Auth::user()?->id;
+            $query->whereHas('user', function ($q) use ($managerId) {
+                $q->where('role', Role::Staff->value)
+                  ->where(function ($sub) use ($managerId) {
+                      $sub->where('manager_id', $managerId)
+                          ->orWhereNull('manager_id');
+                  });
+            });
         }
 
         return $query

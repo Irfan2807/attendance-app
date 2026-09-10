@@ -8,6 +8,7 @@ use Carbon\Carbon;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -23,12 +24,15 @@ class User extends Authenticatable implements FilamentUser
 
     public const ROLE_STAFF = 3;
 
+    public const ROLE_HR = 4;
+
     /** @var array<string> */
     protected $fillable = [
         'name',
         'phone',
         'password',
         'role',
+        'manager_id',
         'is_active',
         'incomplete_clock_out_count',
     ];
@@ -42,8 +46,8 @@ class User extends Authenticatable implements FilamentUser
     /** @var array<string,string> */
     protected $casts = [
         'password' => 'hashed',
-        'role' => 'integer',
         'role' => Role::class,
+        'manager_id' => 'integer',
         'is_active' => 'boolean',
     ];
 
@@ -76,9 +80,24 @@ class User extends Authenticatable implements FilamentUser
         return $this->role === Role::Staff || $this->roleValue() === 3;
     }
 
+    public function isHr(): bool
+    {
+        return $this->role === Role::HR || $this->roleValue() === 4;
+    }
+
     public function isManagerOrAdmin(): bool
     {
-        return $this->isAdmin() || $this->isManager();
+        return $this->isAdmin() || $this->isManager() || $this->isHr();
+    }
+
+    public function manager(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'manager_id');
+    }
+
+    public function subordinates(): HasMany
+    {
+        return $this->hasMany(User::class, 'manager_id');
     }
 
     public function attendances(): HasMany
@@ -126,9 +145,9 @@ class User extends Authenticatable implements FilamentUser
         }
 
         // 2. STAFF PANEL (Green)
-        // Staff and Managers. Admins allowed for management oversight.
+        // Staff, Managers, HR Executives. Admins allowed for management oversight.
         if ($panel->getId() === 'staff') {
-            return $this->isStaff() || $this->isManager() || $this->isAdmin();
+            return $this->isStaff() || $this->isManager() || $this->isHr() || $this->isAdmin();
         }
 
         return false; // Default: Block access to unknown panels
