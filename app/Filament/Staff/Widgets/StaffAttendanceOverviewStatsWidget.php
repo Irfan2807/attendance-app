@@ -30,7 +30,7 @@ class StaffAttendanceOverviewStatsWidget extends BaseWidget
     protected function getStats(): array
     {
         // Cache stats for 2 minutes to reduce repeated dashboard load while keeping fresh counts.
-        return Cache::remember('staff_stats_v5_' . (Auth::user()?->id ?? 0), 120, function () {
+        return Cache::remember('staff_stats_v6_' . (Auth::user()?->id ?? 0), 120, function () {
             $dbDriver = DB::connection()->getDriverName();
             [$todayStart, $todayEnd] = AttendanceWindowService::operationalDayRange();
             $thisMonth = Carbon::now()->startOfMonth();
@@ -76,9 +76,6 @@ class StaffAttendanceOverviewStatsWidget extends BaseWidget
 
             $formattedTeamHours = AttendanceMetricsService::formatHoursAndMinutes($teamTotalMinutes);
 
-            // Site coverage for today
-            $coverage = AttendanceAnalyticsService::siteCoverage($todayStart, $todayEnd);
-
             // Pending shift check-ins + pending leave requests
             $currentUserId = Auth::user()?->id;
             $isManager = Auth::user()?->isManager() ?? false;
@@ -120,18 +117,6 @@ class StaffAttendanceOverviewStatsWidget extends BaseWidget
                     ->description($rateDescription)
                     ->color($attendanceRateToday >= 80 ? 'success' : ($attendanceRateToday >= 60 ? 'warning' : 'danger'))
                     ->icon('heroicon-o-users'),
-
-                Stat::make(
-                    'Site Coverage',
-                    $coverage['has_configured_sites'] ? $coverage['coverage_rate'] . '%' : 'N/A'
-                )
-                    ->description(
-                        $coverage['has_configured_sites']
-                            ? $coverage['active_sites'] . '/' . $coverage['total_active_sites'] . ' active sites manned'
-                            : 'No active sites configured'
-                    )
-                    ->color($coverage['has_configured_sites'] ? ($coverage['coverage_rate'] >= 70 ? 'success' : 'warning') : 'gray')
-                    ->icon('heroicon-o-map-pin'),
 
                 Stat::make('Team Total Hours', $formattedTeamHours)
                     ->description('This month')
