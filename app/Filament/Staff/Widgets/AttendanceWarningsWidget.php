@@ -19,6 +19,21 @@ class AttendanceWarningsWidget extends BaseWidget
         'lg' => 2,
     ];
 
+    public static function canView(): bool
+    {
+        $user = Auth::user();
+        if (! $user) {
+            return false;
+        }
+
+        // Only show if the user has active warnings or recorded incomplete clock-outs.
+        // Keeps the home dashboard clean and anxiety-free for compliant workers.
+        $monthlyWarnings = AttendanceInfraction::getMonthlyWarningCount($user->id);
+        $totalInfractions = (int) $user->incomplete_clock_out_count;
+
+        return $monthlyWarnings > 0 || $totalInfractions > 0;
+    }
+
     protected function getStats(): array
     {
         $user = Auth::user();

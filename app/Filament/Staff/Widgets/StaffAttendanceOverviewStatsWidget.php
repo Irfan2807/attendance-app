@@ -19,7 +19,7 @@ use Livewire\Attributes\Lazy;
 #[Lazy]
 class StaffAttendanceOverviewStatsWidget extends BaseWidget
 {
-    protected static ?int $sort = 2;
+    protected static ?int $sort = -1;
     protected int | string | array $columnSpan = 'full';
 
     public static function canView(): bool

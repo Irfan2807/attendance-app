@@ -51,3 +51,4 @@ class CheckFleetComplianceAlerts extends Command
         return self::SUCCESS;
     }
 }
+

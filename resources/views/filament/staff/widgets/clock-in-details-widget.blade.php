@@ -79,7 +79,13 @@
                     <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">Completed this month</p>
                 </div>
             </div>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-3">All clear. Keep clocking in and out on time.</p>
+            <div class="mt-3 flex items-center justify-between text-xs">
+                <p class="text-gray-500 dark:text-gray-400">Keep clocking in and out on time.</p>
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                    <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                    Good Standing
+                </span>
+            </div>
         </div>
     </x-filament::section>
 </x-filament-widgets::widget>

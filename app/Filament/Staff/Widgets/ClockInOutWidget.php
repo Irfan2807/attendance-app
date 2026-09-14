@@ -4,6 +4,7 @@ namespace App\Filament\Staff\Widgets;
 
 use App\Models\Attendance;
 use App\Models\AttendanceInfraction;
+use App\Models\Site;
 use App\Services\AppNotificationService;
 use App\Services\AttendanceVerificationService;
 use App\Services\AttendanceWindowService;
@@ -56,10 +57,17 @@ class ClockInOutWidget extends Widget
 
     public bool $isManualLocation = false;
 
+    public ?int $selectedSiteId = null;
+
+    public ?string $customLocationName = null;
+
+    public array $availableSites = [];
+
     public function mount(): void
     {
         $this->loadAttendanceState();
         $this->clientIp = request()->ip();
+        $this->availableSites = Site::where('is_active', true)->orderBy('name')->get(['id', 'name', 'latitude', 'longitude'])->toArray();
     }
 
     public function hydrate(): void
@@ -187,6 +195,47 @@ class ClockInOutWidget extends Widget
         $this->longitude = $longitude;
         $this->isManualLocation = false;
         $this->locationError = null;
+    }
+
+    public function selectPredefinedSite(?int $siteId): void
+    {
+        $this->selectedSiteId = $siteId;
+        if (! $siteId) {
+            $this->customLocationName = null;
+            return;
+        }
+
+        $site = Site::where('id', $siteId)->where('is_active', true)->first();
+        if ($site) {
+            $this->latitude = (string) $site->latitude;
+            $this->longitude = (string) $site->longitude;
+            $this->customLocationName = $site->name;
+            $this->isManualLocation = true;
+            $this->locationError = null;
+            $this->showManualInput = false;
+
+            $this->dispatch('notify',
+                title: '✓ Site Selected',
+                message: "Location set to: {$site->name}",
+                status: 'success'
+            );
+        }
+    }
+
+    public function setCustomLocationName(): void
+    {
+        $name = trim((string) $this->customLocationName);
+        if ($name !== '') {
+            $this->isManualLocation = true;
+            $this->locationError = null;
+            $this->showManualInput = false;
+
+            $this->dispatch('notify',
+                title: '✓ Work Location Set',
+                message: "Location: {$name} (Requires supervisor verification)",
+                status: 'warning'
+            );
+        }
     }
 
     public function useManualCoordinates(): void
@@ -349,8 +398,13 @@ class ClockInOutWidget extends Widget
             // Create the attendance record inside a transaction to prevent duplicate clock-ins
             // from concurrent requests (race condition guard).
             $alreadyClockedIn = false;
+            $siteName = $this->customLocationName ?: ($ipVerified?->name ?? $locationVerified?->name ?? 'Unknown Location');
+            if ($this->customLocationName && ! in_array("Location: {$this->customLocationName}", $verificationNotes)) {
+                $verificationNotes[] = "Location: {$this->customLocationName}";
+            }
+
             $attendance = DB::transaction(function () use (
-                $user, $status, $verificationNotes, $ipVerified, $locationVerified, &$alreadyClockedIn
+                $user, $status, $verificationNotes, $siteName, &$alreadyClockedIn
             ) {
                 // Re-check for an active shift with a write lock so concurrent requests are serialised.
                 $existingActive = Attendance::where('user_id', $user->id)
@@ -366,7 +420,7 @@ class ClockInOutWidget extends Widget
 
                 return Attendance::create([
                     'user_id' => $user->id,
-                    'site_name' => $ipVerified?->name ?? $locationVerified?->name ?? 'Unknown Location',
+                    'site_name' => $siteName,
                     'latitude' => $this->latitude ? (float) $this->latitude : 0,
                     'longitude' => $this->longitude ? (float) $this->longitude : 0,
                     'status' => $status,

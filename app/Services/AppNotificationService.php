@@ -307,3 +307,4 @@ class AppNotificationService
         $notification->sendToDatabase($recipients);
     }
 }
+
