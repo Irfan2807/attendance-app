@@ -49,6 +49,7 @@ class StaffLeaveApprovalResource extends Resource
     public static function getNavigationBadge(): ?string
     {
         $count = static::getEloquentQuery()
+            ->without(['user', 'actionedBy'])
             ->where('status', LeaveStatus::Pending->value)
             ->count();
 

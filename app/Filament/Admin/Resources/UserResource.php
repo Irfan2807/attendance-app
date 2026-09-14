@@ -295,7 +295,6 @@ class UserResource extends Resource
                     ->label('Active')
                     ->sortable(),
             ])
-            ->modifyQueryUsing(fn ($query) => $query->withCount('attendances')->with(['attendances' => fn ($q) => $q->whereNotNull('clock_out_time')]))
             ->modifyQueryUsing(fn ($query) => $query->withCount('attendances')->with(['manager', 'attendances' => fn ($q) => $q->whereNotNull('clock_out_time')]))
             ->filters([
                 Tables\Filters\SelectFilter::make('role')

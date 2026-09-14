@@ -36,7 +36,7 @@ class StaffAttendanceApprovalResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        $count = static::getEloquentQuery()->count();
+        $count = static::getEloquentQuery()->without(['user', 'approver'])->count();
         return $count > 0 ? (string) $count : null;
     }
 

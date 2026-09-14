@@ -22,6 +22,11 @@ class MileageLogResource extends Resource
     protected static ?string $navigationGroup = 'Fleet';
     protected static ?int $navigationSort = 2;
 
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->with(['vehicle', 'user']);
+    }
+
     public static function canViewAny(): bool
     {
         return Auth::check();

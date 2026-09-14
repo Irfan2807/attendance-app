@@ -10,6 +10,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 
 class MileageLogResource extends Resource
@@ -20,6 +21,11 @@ class MileageLogResource extends Resource
     protected static ?string $navigationLabel = 'Mileage Logs';
     protected static ?string $navigationGroup = 'Fleet';
     protected static ?int $navigationSort = 2;
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->with(['vehicle', 'user']);
+    }
 
     public static function canViewAny(): bool
     {
