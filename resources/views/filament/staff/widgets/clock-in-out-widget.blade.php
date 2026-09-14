@@ -1,278 +1,252 @@
 <x-filament-widgets::widget>
-    <x-filament::section class="overflow-hidden">
+    <x-filament::section>
+        {{-- Hero Split Layout: Left Info, Right Action --}}
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+            {{-- Left Column: Greeting, Shift Status & Location --}}
+            <div class="space-y-3">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                        {{ now()->translatedFormat('l, j F Y') }}
+                    </p>
+                    <h2 class="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight mt-0.5">
+                        Hi, {{ auth()->user()->name }} 👋
+                    </h2>
+                </div>
 
-        {{-- 1. Header Bar: Friendly Greeting & Standing Pill --}}
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-5 border-b border-gray-100 dark:border-gray-800">
-            <div>
-                <p class="text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400">
-                    {{ now()->translatedFormat('l, j F Y') }}
-                </p>
-                <h2 class="text-xl font-bold text-gray-900 dark:text-white mt-0.5">
-                    Hi, {{ auth()->user()->name }} 👋
-                </h2>
-            </div>
-
-            <div class="flex items-center gap-2">
-                @if ($isGoodStanding)
-                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/80 shadow-xs">
-                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                        Good Standing
-                    </span>
-                @else
-                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800/80 shadow-xs">
-                        <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                        Attendance Notice
-                    </span>
-                @endif
-            </div>
-        </div>
-
-        {{-- 2. Hero Center: Clean Primary Shift Action & Clear Status --}}
-        <div class="py-6 px-4 my-4 bg-gray-50/70 dark:bg-gray-800/40 rounded-2xl border border-gray-100 dark:border-gray-800 text-center"
-             x-data="{ 
-                locating: false,
-                doClockIn() {
-                    if ($wire.latitude || $wire.isManualLocation) {
-                        $wire.call('clockIn');
-                        return;
-                    }
-
-                    const isSecure = window.location.protocol === 'https:' || ['localhost', '127.0.0.1'].includes(window.location.hostname);
-                    if (!navigator.geolocation || !isSecure) {
-                        $wire.call('clockIn');
-                        return;
-                    }
-
-                    this.locating = true;
-                    navigator.geolocation.getCurrentPosition(
-                        (pos) => {
-                            this.locating = false;
-                            $wire.call('setLocation', pos.coords.latitude.toString(), pos.coords.longitude.toString());
-                            $wire.call('clockIn');
-                        },
-                        (err) => {
-                            this.locating = false;
-                            let errorMsg = err.code === err.PERMISSION_DENIED
-                                ? 'Location permission denied. Verification by network.'
-                                : 'Unable to capture GPS. Verification by network.';
-                            $wire.call('setLocationError', errorMsg);
-                            $wire.call('clockIn');
-                        },
-                        { enableHighAccuracy: true, timeout: 6000, maximumAge: 0 }
-                    );
-                }
-             }"
-        >
-            {{-- Shift Status Pill --}}
-            <div class="mb-4">
-                @if ($isClockedIn && $isPendingApproval)
-                    <span class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-200 border border-amber-200 dark:border-amber-800">
-                        <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-                        On Duty · Pending Manager Verification ({{ $clockInTime }})
-                    </span>
-                @elseif ($isClockedIn)
-                    <span class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-800">
-                        <span class="relative flex h-2 w-2">
-                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                {{-- Status Pill --}}
+                <div class="flex items-center gap-3">
+                    @if ($isClockedIn && $isPendingApproval)
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-700/60">
+                            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                            On Duty · Pending Manager Verification ({{ $clockInTime }})
                         </span>
-                        On Duty · Started at {{ $clockInTime }}
-                    </span>
-                @elseif ($isClockedOut)
-                    <span class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-800">
-                        <span class="w-2 h-2 rounded-full bg-blue-500"></span>
-                        Shift Recorded ({{ $clockInTime }} - {{ $clockOutTime }}) · Pending Approval
-                    </span>
-                @elseif ($isCompleted)
-                    <span class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-800">
-                        <span class="w-2 h-2 rounded-full bg-blue-500"></span>
-                        Shift Completed ({{ $clockInTime }} - {{ $clockOutTime }}) · {{ $this->workedHours() }}
-                    </span>
-                @else
-                    <span class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700/70 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600">
-                        <span class="w-2 h-2 rounded-full bg-gray-400"></span>
-                        Ready to Start Shift
-                    </span>
-                @endif
+                    @elseif ($isClockedIn)
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/60">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            On Duty · Started at {{ $clockInTime }} ({{ $this->formatMinutes($activeShiftMinutes) }})
+                        </span>
+                    @elseif ($isClockedOut)
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-300 dark:border-blue-700/60">
+                            <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                            Shift Recorded ({{ $clockInTime }} - {{ $clockOutTime }}) · Pending Approval
+                        </span>
+                    @elseif ($isCompleted)
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-300 dark:border-blue-700/60">
+                            <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                            Shift Completed ({{ $clockInTime }} - {{ $clockOutTime }}) · {{ $this->workedHours() }}
+                        </span>
+                    @else
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 border border-gray-300 dark:border-gray-700">
+                            <span class="w-2 h-2 rounded-full bg-gray-400"></span>
+                            Ready to Start Shift
+                        </span>
+                    @endif
+                </div>
+
+                {{-- Location Subtitle --}}
+                <div>
+                    @if ($customLocationName)
+                        <p class="text-xs text-gray-600 dark:text-gray-300 flex items-center gap-1.5">
+                            <span class="text-blue-500">📍</span>
+                            <span>Assigned Site: <strong class="font-semibold text-gray-900 dark:text-white">{{ $customLocationName }}</strong></span>
+                        </p>
+                    @elseif ($locationError)
+                        <p class="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                            <span>⚠️</span>
+                            <span>{{ $locationError }}</span>
+                        </p>
+                    @elseif ($isClockedIn)
+                        <p class="text-xs text-gray-600 dark:text-gray-300 flex items-center gap-1.5">
+                            <span class="text-emerald-500">📍</span>
+                            <span>Working at: <strong class="font-semibold text-gray-900 dark:text-white">{{ $currentShiftLocation ?: 'Headquarters / Registered Site' }}</strong></span>
+                        </p>
+                    @else
+                        <p class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                            <span>Location verified automatically via GPS on tap</span>
+                        </p>
+                    @endif
+
+                    {{-- Off-site collapsible toggle --}}
+                    @if (!$isClockedIn && !$isCompleted && !$isClockedOut)
+                        <div class="mt-1">
+                            <button
+                                wire:click="toggleManualInput"
+                                type="button"
+                                class="text-xs font-medium text-emerald-600 hover:text-emerald-500 dark:text-emerald-400 dark:hover:text-emerald-300 underline cursor-pointer"
+                            >
+                                {{ $showManualInput ? '▲ Hide Location Options' : '▼ Working at a client site or off-site?' }}
+                            </button>
+                        </div>
+                    @endif
+                </div>
             </div>
 
-            {{-- Primary Punch Buttons --}}
-            <div class="max-w-md mx-auto">
+            {{-- Right Column: Action Button & Standing Badge --}}
+            <div class="flex flex-col items-center sm:items-end justify-center gap-2.5"
+                 x-data="{
+                    locating: false,
+                    doClockIn() {
+                        if ($wire.latitude || $wire.isManualLocation) {
+                            $wire.call('clockIn');
+                            return;
+                        }
+
+                        const isSecure = window.location.protocol === 'https:' || ['localhost', '127.0.0.1'].includes(window.location.hostname);
+                        if (!navigator.geolocation || !isSecure) {
+                            $wire.call('clockIn');
+                            return;
+                        }
+
+                        this.locating = true;
+                        navigator.geolocation.getCurrentPosition(
+                            (pos) => {
+                                this.locating = false;
+                                $wire.call('setLocation', pos.coords.latitude.toString(), pos.coords.longitude.toString());
+                                $wire.call('clockIn');
+                            },
+                            (err) => {
+                                this.locating = false;
+                                let errorMsg = err.code === err.PERMISSION_DENIED
+                                    ? 'Location permission denied. Verification by network.'
+                                    : 'Unable to capture GPS. Verification by network.';
+                                $wire.call('setLocationError', errorMsg);
+                                $wire.call('clockIn');
+                            },
+                            { enableHighAccuracy: true, timeout: 6000, maximumAge: 0 }
+                        );
+                    }
+                 }"
+            >
                 @if (!$isClockedIn && !$isCompleted && !$isClockedOut)
                     <button
                         @click="doClockIn()"
                         wire:loading.attr="disabled"
                         type="button"
-                        class="w-full py-4 px-6 text-lg font-bold text-white rounded-xl shadow-md transition-all duration-200 transform hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2.5 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                        style="display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-width: 220px; padding: 14px 28px; background: linear-gradient(135deg, #22c55e, #16a34a); color: #ffffff; font-size: 1.1rem; font-weight: 700; border-radius: 12px; border: 1px solid #15803d; box-shadow: 0 8px 18px -4px rgba(34, 197, 94, 0.45); cursor: pointer; transition: all 0.2s ease;"
+                        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 12px 22px -4px rgba(34, 197, 94, 0.6)';"
+                        onmouseout="this.style.transform='none'; this.style.boxShadow='0 8px 18px -4px rgba(34, 197, 94, 0.45)';"
                     >
-                        <span x-show="!locating" wire:loading.remove class="flex items-center gap-2">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                            Clock In
-                        </span>
-                        <span x-show="locating" style="display: none;" class="flex items-center gap-2">
-                            <svg class="w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                            Detecting Location...
-                        </span>
-                        <span wire:loading class="flex items-center gap-2">
-                            <svg class="w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                            Starting Shift...
-                        </span>
+                        <svg style="width: 22px; height: 22px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <span x-show="!locating">Clock In</span>
+                        <span x-show="locating" style="display: none;">Detecting GPS...</span>
                     </button>
                 @elseif ($isClockedIn)
                     <button
                         wire:click="clockOut"
                         wire:loading.attr="disabled"
                         type="button"
-                        class="w-full py-4 px-6 text-lg font-bold text-white rounded-xl shadow-md transition-all duration-200 transform hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2.5 bg-rose-600 hover:bg-rose-500 active:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                        style="display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-width: 220px; padding: 14px 28px; background: linear-gradient(135deg, #ef4444, #dc2626); color: #ffffff; font-size: 1.1rem; font-weight: 700; border-radius: 12px; border: 1px solid #b91c1c; box-shadow: 0 8px 18px -4px rgba(239, 68, 68, 0.45); cursor: pointer; transition: all 0.2s ease;"
+                        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 12px 22px -4px rgba(239, 68, 68, 0.6)';"
+                        onmouseout="this.style.transform='none'; this.style.boxShadow='0 8px 18px -4px rgba(239, 68, 68, 0.45)';"
                     >
-                        <span wire:loading.remove class="flex items-center gap-2">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-                            Clock Out
-                        </span>
-                        <span wire:loading class="flex items-center gap-2">
-                            <svg class="w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                            Ending Shift...
-                        </span>
+                        <svg style="width: 22px; height: 22px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                        <span>Clock Out</span>
                     </button>
                 @elseif ($isCompleted)
-                    <div class="space-y-3">
-                        <div class="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 rounded-xl">
-                            <p class="text-sm font-semibold text-blue-900 dark:text-blue-300">Shift Completed for Today</p>
-                            <p class="text-xs text-blue-700 dark:text-blue-400 mt-0.5">✓ Great job! See you tomorrow.</p>
-                        </div>
-                        <button
-                            wire:click="clockIn"
-                            wire:loading.attr="disabled"
-                            type="button"
-                            class="w-full py-2.5 px-4 text-xs font-semibold text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-950/40 hover:bg-orange-100 dark:hover:bg-orange-900/40 border border-orange-200 dark:border-orange-800 rounded-lg transition cursor-pointer"
-                        >
-                            <span wire:loading.remove>⚠️ Clock In Again (Requires Approval)</span>
-                            <span wire:loading>Processing...</span>
-                        </button>
-                    </div>
-                @elseif ($isClockedOut)
-                    <div class="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 rounded-xl">
-                        <p class="text-sm font-semibold text-blue-900 dark:text-blue-300">Shift Recorded · Pending Manager Review</p>
-                        <p class="text-xs text-blue-700 dark:text-blue-400 mt-0.5">Your shift has been recorded and will be verified shortly.</p>
-                    </div>
-                @endif
-            </div>
-
-            {{-- Calm Location Status Indicator --}}
-            <div class="mt-3">
-                @if ($customLocationName)
-                    <p class="text-xs text-gray-600 dark:text-gray-300 flex items-center justify-center gap-1.5">
-                        <span class="text-blue-500">📍</span>
-                        <span>Assigned Work Site: <strong class="font-semibold text-gray-900 dark:text-white">{{ $customLocationName }}</strong></span>
-                    </p>
-                @elseif ($locationError)
-                    <p class="text-xs text-amber-600 dark:text-amber-400 flex items-center justify-center gap-1.5">
-                        <span>⚠️</span>
-                        <span>{{ $locationError }}</span>
-                    </p>
-                @elseif ($isClockedIn)
-                    <p class="text-xs text-gray-600 dark:text-gray-300 flex items-center justify-center gap-1.5">
-                        <span class="text-emerald-500">📍</span>
-                        <span>Working at: <strong class="font-semibold text-gray-900 dark:text-white">{{ $currentShiftLocation ?: 'Office / Registered Site' }}</strong></span>
-                    </p>
-                @elseif ($latitude && $longitude)
-                    <p class="text-xs text-emerald-600 dark:text-emerald-400 flex items-center justify-center gap-1.5">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                        <span>GPS Captured · Ready to clock in</span>
-                    </p>
-                @else
-                    <p class="text-xs text-gray-600 dark:text-gray-400 flex items-center justify-center gap-1.5">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                        <span>Location automatically verified upon tap</span>
-                    </p>
-                @endif
-            </div>
-
-            {{-- Collapsible Off-Site / Client Project Selector (Only shown before clock in) --}}
-            @if (!$isClockedIn && !$isCompleted && !$isClockedOut)
-                <div class="mt-2 pt-1">
                     <button
-                        wire:click="toggleManualInput"
+                        wire:click="clockIn"
+                        wire:loading.attr="disabled"
                         type="button"
-                        class="text-xs font-medium text-gray-600 hover:text-emerald-600 dark:text-gray-400 dark:hover:text-emerald-400 transition cursor-pointer"
+                        style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-width: 220px; padding: 12px 24px; background: rgba(249, 115, 22, 0.15); color: #f97316; font-size: 0.9rem; font-weight: 600; border-radius: 10px; border: 1px solid rgba(249, 115, 22, 0.35); cursor: pointer; transition: all 0.2s ease;"
                     >
-                        {{ $showManualInput ? '▲ Hide Location Options' : '▼ Working at a client site or off-site?' }}
+                        <span>⚠️ Clock In Again</span>
                     </button>
+                @elseif ($isClockedOut)
+                    <div style="padding: 10px 18px; border-radius: 10px; background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.25); text-align: center;">
+                        <p style="font-size: 0.82rem; font-weight: 600; color: #60a5fa; margin: 0;">Shift Pending Review</p>
+                    </div>
+                @endif
 
-                    @if ($showManualInput)
-                        <div class="mt-3 max-w-md mx-auto p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl space-y-3 text-left shadow-sm">
-                            @if (!empty($availableSites))
-                                <div>
-                                    <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Choose Assigned Work Site:</label>
-                                    <select 
-                                        wire:change="selectPredefinedSite($event.target.value)"
-                                        class="w-full text-xs rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-emerald-500 focus:ring-emerald-500"
-                                    >
-                                        <option value="">-- Select Work Site --</option>
-                                        @foreach ($availableSites as $site)
-                                            <option value="{{ $site['id'] }}" @selected($selectedSiteId == $site['id'])>{{ $site['name'] }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                            @endif
-
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Or Enter Client / Project Location:</label>
-                                <div class="flex gap-2">
-                                    <input 
-                                        type="text" 
-                                        wire:model="customLocationName"
-                                        placeholder="e.g., Petronas Subang Site"
-                                        class="flex-1 text-xs rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-emerald-500 focus:ring-emerald-500"
-                                    />
-                                    <button
-                                        wire:click="setCustomLocationName"
-                                        type="button"
-                                        class="px-3.5 py-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-sm transition cursor-pointer"
-                                    >
-                                        Set
-                                    </button>
-                                </div>
-                            </div>
-
-                            <details class="text-[11px] text-gray-600 dark:text-gray-400 pt-1 border-t border-gray-100 dark:border-gray-700">
-                                <summary class="cursor-pointer hover:underline">Advanced: Manual coordinates</summary>
-                                <div class="space-y-1.5 mt-2">
-                                    <input type="text" wire:model="manualLatitude" placeholder="Latitude (e.g. 3.069215)" class="w-full text-xs rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700">
-                                    <input type="text" wire:model="manualLongitude" placeholder="Longitude (e.g. 101.562021)" class="w-full text-xs rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700">
-                                    <button wire:click="useManualCoordinates" type="button" class="w-full py-1 text-xs font-semibold bg-gray-600 text-white rounded hover:bg-gray-700 cursor-pointer">Set Coordinates</button>
-                                </div>
-                            </details>
-                        </div>
+                {{-- Disciplinary Standing Badge --}}
+                <div>
+                    @if ($isGoodStanding)
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            Good Standing
+                        </span>
+                    @else
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+                            <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                            Attendance Notice
+                        </span>
                     @endif
                 </div>
-            @endif
+            </div>
         </div>
 
-        {{-- 3. Footer Metrics Strip: 3-column quiet stats --}}
-        <div class="pt-4 border-t border-gray-100 dark:border-gray-800 grid grid-cols-3 divide-x divide-gray-100 dark:divide-gray-800 text-center">
+        {{-- Off-Site Drawer if expanded --}}
+        @if ($showManualInput && !$isClockedIn && !$isCompleted && !$isClockedOut)
+            <div class="mt-4 p-4 bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/70 rounded-xl space-y-3">
+                @if (!empty($availableSites))
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Choose Assigned Work Site:</label>
+                        <select 
+                            wire:change="selectPredefinedSite($event.target.value)"
+                            class="w-full text-xs rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-xs"
+                        >
+                            <option value="">-- Select Work Site --</option>
+                            @foreach ($availableSites as $site)
+                                <option value="{{ $site['id'] }}" @selected($selectedSiteId == $site['id'])>{{ $site['name'] }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                @endif
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Or Enter Client / Project Location:</label>
+                    <div class="flex gap-2">
+                        <input 
+                            type="text" 
+                            wire:model="customLocationName"
+                            placeholder="e.g., Petronas Subang Site"
+                            class="flex-1 text-xs rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-xs"
+                        />
+                        <button
+                            wire:click="setCustomLocationName"
+                            type="button"
+                            class="px-3.5 py-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-xs cursor-pointer"
+                        >
+                            Set
+                        </button>
+                    </div>
+                </div>
+
+                <details class="text-[11px] text-gray-500 dark:text-gray-400 pt-1 border-t border-gray-200 dark:border-gray-700">
+                    <summary class="cursor-pointer hover:underline">Advanced: Manual coordinates</summary>
+                    <div class="space-y-1.5 mt-2">
+                        <input type="text" wire:model="manualLatitude" placeholder="Latitude (e.g. 3.069215)" class="w-full text-xs rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700">
+                        <input type="text" wire:model="manualLongitude" placeholder="Longitude (e.g. 101.562021)" class="w-full text-xs rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700">
+                        <button wire:click="useManualCoordinates" type="button" class="w-full py-1 text-xs font-semibold bg-gray-600 text-white rounded hover:bg-gray-700 cursor-pointer">Set Coordinates</button>
+                    </div>
+                </details>
+            </div>
+        @endif
+
+        {{-- Footer Metrics Strip: 3 horizontal stats --}}
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); text-align: center; margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid rgba(156, 163, 175, 0.18);">
             <div>
-                <p class="text-[11px] uppercase tracking-wider font-semibold text-gray-600 dark:text-gray-400">Today</p>
-                <p class="text-base font-bold text-gray-900 dark:text-white mt-0.5">
+                <p style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: #9ca3af; font-weight: 600; margin: 0;">Today</p>
+                <p style="font-size: 1.35rem; font-weight: 800; margin: 4px 0 0;" class="text-gray-900 dark:text-white">
                     @if ($isClockedIn)
-                        <span class="text-emerald-600 dark:text-emerald-400">{{ $this->formatMinutes($todayMinutes + $activeShiftMinutes) }}</span>
+                        <span style="color: #22c55e;">{{ $this->formatMinutes($todayMinutes + $activeShiftMinutes) }}</span>
                     @else
                         {{ $this->formatMinutes($todayMinutes) }}
                     @endif
                 </p>
             </div>
-            <div>
-                <p class="text-[11px] uppercase tracking-wider font-semibold text-gray-600 dark:text-gray-400">This Week</p>
-                <p class="text-base font-bold text-gray-900 dark:text-white mt-0.5">{{ $this->formatMinutes($weekMinutes) }}</p>
+            <div style="border-left: 1px solid rgba(156, 163, 175, 0.18); border-right: 1px solid rgba(156, 163, 175, 0.18);">
+                <p style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: #9ca3af; font-weight: 600; margin: 0;">This Week</p>
+                <p style="font-size: 1.35rem; font-weight: 800; margin: 4px 0 0;" class="text-gray-900 dark:text-white">{{ $this->formatMinutes($weekMinutes) }}</p>
             </div>
             <div>
-                <p class="text-[11px] uppercase tracking-wider font-semibold text-gray-600 dark:text-gray-400">This Month</p>
-                <p class="text-base font-bold text-gray-900 dark:text-white mt-0.5">{{ $monthCompletedCount }} <span class="text-xs font-normal text-gray-600 dark:text-gray-400">shifts</span></p>
+                <p style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: #9ca3af; font-weight: 600; margin: 0;">This Month</p>
+                <p style="font-size: 1.35rem; font-weight: 800; margin: 4px 0 0;" class="text-gray-900 dark:text-white">{{ $monthCompletedCount }} <span style="font-size: 0.8rem; font-weight: 400; color: #9ca3af;">shifts</span></p>
             </div>
         </div>
 
-        {{-- 4. Discreet Reminder Notice --}}
-        <p class="text-center text-[11px] text-gray-600 dark:text-gray-400 mt-4">
+        {{-- Subtle Footer Reminder --}}
+        <p style="text-align: center; font-size: 0.7rem; color: #9ca3af; margin: 12px 0 0;">
             💡 Reminder: Always clock out when leaving to keep your attendance verified.
         </p>
     </x-filament::section>
