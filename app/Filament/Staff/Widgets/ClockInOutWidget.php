@@ -22,10 +22,7 @@ class ClockInOutWidget extends Widget
 
     protected static ?int $sort = 0;
 
-    protected int|string|array $columnSpan = [
-        'default' => 1,
-        'lg' => 1,
-    ];
+    protected int|string|array $columnSpan = 'full';
 
     public bool $isLoading = false;
 
@@ -62,6 +59,18 @@ class ClockInOutWidget extends Widget
     public ?string $customLocationName = null;
 
     public array $availableSites = [];
+
+    public int $todayMinutes = 0;
+
+    public int $weekMinutes = 0;
+
+    public int $monthCompletedCount = 0;
+
+    public int $activeShiftMinutes = 0;
+
+    public ?string $currentShiftLocation = null;
+
+    public bool $isGoodStanding = true;
 
     public function mount(): void
     {
@@ -164,29 +173,64 @@ class ClockInOutWidget extends Widget
         $this->clockInTime = null;
         $this->clockOutTime = null;
 
-        // No record found - ready to clock in
-        if (! $attendanceState) {
-            return;
-        }
-
         // Set times
-        $this->clockInTime = $attendanceState->clock_in_time->format('H:i');
-        $this->clockOutTime = $attendanceState->clock_out_time ? $attendanceState->clock_out_time->format('H:i') : null;
+        if ($attendanceState) {
+            $this->clockInTime = $attendanceState->clock_in_time->format('H:i');
+            $this->clockOutTime = $attendanceState->clock_out_time ? $attendanceState->clock_out_time->format('H:i') : null;
 
-        // Has NOT clocked out yet - currently working
-        if (! $attendanceState->clock_out_time) {
-            $this->isClockedIn = true;
-            $this->isPendingApproval = ($attendanceState->status === 'pending');
-
-            return;
+            // Has NOT clocked out yet - currently working
+            if (! $attendanceState->clock_out_time) {
+                $this->isClockedIn = true;
+                $this->isPendingApproval = ($attendanceState->status === 'pending');
+                $this->activeShiftMinutes = (int) $attendanceState->clock_in_time->diffInMinutes($now);
+                $this->currentShiftLocation = $attendanceState->site_name;
+            } else {
+                // Has clocked out - check if completed or pending
+                if (in_array($attendanceState->status, ['approved', 'completed'])) {
+                    $this->isCompleted = true;
+                } else {
+                    $this->isClockedOut = true;
+                }
+                $this->activeShiftMinutes = 0;
+                $this->currentShiftLocation = $attendanceState->site_name;
+            }
         }
 
-        // Has clocked out - check if completed or pending
-        if (in_array($attendanceState->status, ['approved', 'completed'])) {
-            $this->isCompleted = true;
-        } else {
-            $this->isClockedOut = true;
+        // Summary metrics (Today, Week, Month)
+        [$todayStart, $todayEnd] = AttendanceWindowService::operationalDayRange($now);
+        $weekStart = $now->copy()->startOfWeek();
+        $weekEnd = $now->copy()->endOfWeek();
+        $monthStart = $now->copy()->startOfMonth();
+
+        $calcMinutes = function ($start, $end) use ($userId) {
+            return (int) Attendance::where('user_id', $userId)
+                ->whereBetween('clock_in_time', [$start, $end])
+                ->whereNotNull('clock_out_time')
+                ->get(['clock_in_time', 'clock_out_time'])
+                ->sum(fn ($a) => $a->clock_in_time->diffInMinutes($a->clock_out_time));
+        };
+
+        $this->todayMinutes = $calcMinutes($todayStart, $todayEnd);
+        $this->weekMinutes = $calcMinutes($weekStart, $weekEnd);
+        $this->monthCompletedCount = Attendance::where('user_id', $userId)
+            ->whereBetween('clock_in_time', [$monthStart, $now])
+            ->whereNotNull('clock_out_time')
+            ->count();
+
+        // Check standing
+        $user = Auth::user();
+        $monthlyWarnings = AttendanceInfraction::getMonthlyWarningCount($userId);
+        $this->isGoodStanding = ($user->incomplete_clock_out_count == 0 && $monthlyWarnings == 0);
+    }
+
+    public function formatMinutes(int $minutes): string
+    {
+        $hours = intdiv($minutes, 60);
+        $rem = $minutes % 60;
+        if ($hours === 0) {
+            return "{$rem}m";
         }
+        return "{$hours}h {$rem}m";
     }
 
     public function setLocation($latitude, $longitude): void

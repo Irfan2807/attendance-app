@@ -19,10 +19,11 @@ class ClockInDetailsWidget extends Widget
 
     protected static ?int $sort = 1;
 
-    protected int|string|array $columnSpan = [
-        'default' => 1,
-        'lg' => 1,
-    ];
+    public static function canView(): bool
+    {
+        // Consolidated into the Hero ClockInOutWidget for a streamlined single-card experience
+        return false;
+    }
 
     public array $stats = [];
 
