@@ -5,6 +5,7 @@ namespace App\Filament\Staff\Resources;
 use App\Enums\Role;
 use App\Filament\Staff\Resources\StaffAttendanceApprovalResource\Pages;
 use App\Models\Attendance;
+use App\Services\AppNotificationService;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -211,6 +212,8 @@ class StaffAttendanceApprovalResource extends Resource
                             'approved_at' => now(),
                         ]);
                         
+                        AppNotificationService::notifyClockInApproved($record, $approver);
+
                         \Filament\Notifications\Notification::make()
                             ->title('Attendance Approved')
                             ->success()
@@ -248,6 +251,8 @@ class StaffAttendanceApprovalResource extends Resource
                             'approved_at' => now(),
                         ]);
                         
+                        AppNotificationService::notifyClockInRejected($record, $approver, $data['approval_notes'] ?? null);
+
                         \Filament\Notifications\Notification::make()
                             ->title('Attendance Rejected')
                             ->success()
@@ -278,6 +283,8 @@ class StaffAttendanceApprovalResource extends Resource
                                     'approved_by' => $approver->id,
                                     'approved_at' => now(),
                                 ]);
+
+                                AppNotificationService::notifyClockInApproved($record, $approver);
                                 $count++;
                             }
                             
@@ -317,6 +324,8 @@ class StaffAttendanceApprovalResource extends Resource
                                     'approved_by' => $approver->id,
                                     'approved_at' => now(),
                                 ]);
+
+                                AppNotificationService::notifyClockInRejected($record, $approver, $data['rejection_reason'] ?? null);
                                 $count++;
                             }
                             

@@ -34,6 +34,8 @@ class AdminPanelProvider extends PanelProvider
             ->colors([
                 'primary' => '#F27E26', // Your Brand Orange
             ])
+            ->databaseNotifications()
+            ->databaseNotificationsPolling('30s')
             // --- BRANDING END ---
 
             ->discoverResources(in: app_path('Filament/Admin/Resources'), for: 'App\\Filament\\Admin\\Resources')

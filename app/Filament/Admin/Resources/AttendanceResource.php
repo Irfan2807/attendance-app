@@ -4,6 +4,7 @@ namespace App\Filament\Admin\Resources;
 
 use App\Filament\Admin\Resources\AttendanceResource\Pages;
 use App\Models\Attendance;
+use App\Services\AppNotificationService;
 use App\Services\AttendanceMetricsService;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -123,11 +124,15 @@ class AttendanceResource extends Resource
                 Tables\Actions\Action::make('approve')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
-                    ->action(fn (Attendance $record) => $record->update([
-                        'status' => 'approved',
-                        'approved_by' => Auth::id(),
-                        'approved_at' => now(),
-                    ]))
+                    ->action(function (Attendance $record) {
+                        $record->update([
+                            'status' => 'approved',
+                            'approved_by' => Auth::id(),
+                            'approved_at' => now(),
+                        ]);
+
+                        AppNotificationService::notifyClockInApproved($record, Auth::user());
+                    })
                     ->visible(fn (Attendance $record) => in_array($record->status, ['pending', 'temporary']) && $record->user_id !== Auth::id()),
             ])
             ->bulkActions([

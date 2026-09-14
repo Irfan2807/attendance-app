@@ -4,6 +4,7 @@ namespace App\Filament\Staff\Widgets;
 
 use App\Models\Attendance;
 use App\Models\AttendanceInfraction;
+use App\Services\AppNotificationService;
 use App\Services\AttendanceVerificationService;
 use App\Services\AttendanceWindowService;
 use Filament\Widgets\Widget;
@@ -401,6 +402,10 @@ class ClockInOutWidget extends Widget
                     status: 'success'
                 );
             } else {
+                if ($attendance) {
+                    AppNotificationService::notifyClockInPending($attendance);
+                }
+
                 $notificationMessage = $this->isManualLocation
                     ? 'Manual coordinates override requires manager verification'
                     : ($completedShift

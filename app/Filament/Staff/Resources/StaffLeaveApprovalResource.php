@@ -7,6 +7,7 @@ use App\Enums\LeaveType;
 use App\Enums\Role;
 use App\Filament\Staff\Resources\StaffLeaveApprovalResource\Pages;
 use App\Models\LeaveRequest;
+use App\Services\AppNotificationService;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
@@ -249,6 +250,8 @@ class StaffLeaveApprovalResource extends Resource
                             'actioned_at' => now(),
                         ]);
 
+                        AppNotificationService::notifyLeaveApproved($record, Auth::user());
+
                         Notification::make()
                             ->title('Leave Approved')
                             ->body("Leave request for {$record->user->name} has been approved.")
@@ -275,6 +278,8 @@ class StaffLeaveApprovalResource extends Resource
                             'actioned_at' => now(),
                             'rejection_reason' => $data['rejection_reason'],
                         ]);
+
+                        AppNotificationService::notifyLeaveRejected($record, Auth::user(), $data['rejection_reason']);
 
                         Notification::make()
                             ->title('Leave Rejected')

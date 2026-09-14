@@ -20,4 +20,10 @@ Schedule::command('holidays:sync')
     ->withoutOverlapping()
     ->runInBackground();
 
+// Check fleet compliance daily (road tax & service due) and dispatch in-app alerts
+Schedule::command('fleet:check-alerts')
+    ->dailyAt('08:00')
+    ->withoutOverlapping()
+    ->runInBackground();
+
 

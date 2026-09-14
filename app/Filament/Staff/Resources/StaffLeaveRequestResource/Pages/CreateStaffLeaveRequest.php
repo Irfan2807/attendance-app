@@ -4,6 +4,7 @@ namespace App\Filament\Staff\Resources\StaffLeaveRequestResource\Pages;
 
 use App\Enums\LeaveStatus;
 use App\Filament\Staff\Resources\StaffLeaveRequestResource;
+use App\Services\AppNotificationService;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Facades\Auth;
 
@@ -17,6 +18,11 @@ class CreateStaffLeaveRequest extends CreateRecord
         $data['status'] = LeaveStatus::Pending;
 
         return $data;
+    }
+
+    protected function afterCreate(): void
+    {
+        AppNotificationService::notifyLeaveSubmitted($this->record);
     }
 
     protected function getRedirectUrl(): string

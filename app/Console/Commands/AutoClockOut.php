@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\Attendance;
 use App\Models\AttendanceInfraction;
 use App\Models\User;
+use App\Services\AppNotificationService;
 use App\Services\AttendanceWindowService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -25,7 +26,9 @@ class AutoClockOut extends Command
             ->get();
 
         foreach ($longRunning as $attendance) {
-            DB::transaction(function () use ($attendance, $now) {
+            $diffHours = (int) $attendance->clock_in_time->diffInHours($now);
+
+            DB::transaction(function () use ($attendance, $now, $diffHours) {
                 $existingNotes = trim((string) $attendance->verification_notes);
                 $autoNote = 'Auto-closed stale shift after max shift duration';
                 $updatedNotes = $existingNotes !== '' ? $existingNotes . ' | ' . $autoNote : $autoNote;
@@ -41,7 +44,7 @@ class AutoClockOut extends Command
                 AttendanceInfraction::create([
                     'user_id' => $attendance->user_id,
                     'attendance_id' => $attendance->id,
-                    'infraction_type' => 'auto_clock_out_' . $attendance->clock_in_time->diffInHours($now),
+                    'infraction_type' => 'auto_clock_out_' . $diffHours,
                     'auto_clock_out_time' => $now,
                     'notes' => 'Auto clocked out after exceeding max shift length',
                 ]);
@@ -50,6 +53,8 @@ class AutoClockOut extends Command
                 User::where('id', $attendance->user_id)
                     ->increment('incomplete_clock_out_count');
             });
+
+            AppNotificationService::notifyAutoClockOut($attendance, $diffHours);
         }
     }
 }

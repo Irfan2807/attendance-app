@@ -28,6 +28,8 @@ class StaffPanelProvider extends PanelProvider
                 'primary' => '#28a745', // Green for Staff
             ])
             ->brandName('Staff Portal')
+            ->databaseNotifications()
+            ->databaseNotificationsPolling('30s')
             ->discoverResources(in: app_path('Filament/Staff/Resources'), for: 'App\\Filament\\Staff\\Resources')
             ->discoverPages(in: app_path('Filament/Staff/Pages'), for: 'App\\Filament\\Staff\\Pages')
             ->pages([
