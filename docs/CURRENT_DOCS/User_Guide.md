@@ -1,305 +1,238 @@
 # Tap and Track – User Guide
 
-**Version:** 1.1  
-**Date:** May 6, 2026  
-**Application:** Tap and Track – Attendance Management System
+**Version:** 2.0  
+**Date:** September 14, 2026  
+**Application:** Tap and Track – Attendance, Leave & Operations Management System  
 
 ---
 
 ## Table of Contents
 
 1. Introduction
-2. Getting Started
+2. Getting Started & User Roles
 3. Staff Portal – Employee Guide
-4. Staff Portal – Manager Guide
-5. Admin Panel Guide
-6. Vehicle & Mileage Tracking
-7. Safety Net & Warning System
-8. Troubleshooting & FAQs
-9. Glossary
+4. Staff Portal – Manager & Supervisor Guide
+5. Admin Panel – Executive & HR Administration
+6. Leave Management & Quota Tracking
+7. Malaysian Public Holidays Calendar
+8. Fleet Compliance & Vehicle Tracking
+9. Safety Net & Disciplinary System
+10. In-App Notification Bell
+11. Troubleshooting & FAQs
+12. Glossary
 
 ---
 
 ## 1. Introduction
 
-Tap and Track is a web-based employee attendance management system designed to simplify and automate the process of recording, verifying, and approving employee attendance. Built on Laravel 12 and the Filament 3.2 admin framework, it provides role-based access for Administrators, Managers, and Staff members.
+Tap and Track is an enterprise employee attendance, leave management, and workforce operations system built on **Laravel 12** and **Filament 3.2**. It provides unified, responsive interfaces for field technicians, operational managers, human resource executives, and company directors.
 
 ### 1.1 Purpose of this Guide
-This guide explains how to use all features of the Tap and Track application. It is intended for three types of users:
-
-- **Staff (Role 3)** – employees who clock in and out daily
-- **Managers (Role 2)** – supervisors who review and approve attendance, and manage staff accounts
-- **Administrators (Role 1)** – system administrators who manage the full platform
-
-### 1.2 Conventions Used
-
-| Convention | Meaning |
-|---|---|
-| **Bold text** | UI element (button, menu item, field name) |
-| *Italic text* | Important note or tip |
-| "Quoted text" | Text you should type exactly as shown |
-| [Role] | Step applies only to the specified role |
+This guide provides complete walkthroughs for all user roles:
+- **Staff (Role 3)** – Field technicians and employees recording shifts and applying for leaves.
+- **Managers (Role 2)** – Supervisors managing assigned subordinates, reviewing clock-ins, approving leaves, and monitoring team overtime.
+- **HR Executives (Role 4)** – Human resources managers overseeing quotas, fleet compliance, and company-wide leave approvals.
+- **Administrators (Role 1)** – Technical administrators managing site configurations, system parameters, and raw logs.
+- **Directors (Role 0)** – Executive leadership with company-wide visibility and authority to review manager-level attendance and leaves.
 
 ---
 
-## 2. Getting Started
+## 2. Getting Started & User Roles
 
 ### 2.1 System Requirements
-To use Tap and Track you need:
-- A modern web browser (Google Chrome, Firefox, Edge, or Safari)
-- An internet connection
-- Your phone number and password (provided by your administrator or manager)
+- A modern web browser: Chrome, Firefox, Microsoft Edge, or Safari.
+- Network connection (cellular or Wi-Fi).
+- Phone number and password credentials.
+- Browser location access enabled (for automated GPS attendance verification).
 
-### 2.2 Accessing the Application
+### 2.2 Access Portals
 
-| Portal | URL | Who Can Access |
+| Portal | URL | Authorized Roles |
 |---|---|---|
-| Staff Portal | `/staff` | Managers & Staff employees |
-| Admin Panel | `/admin` | Administrators only |
-| Public Landing Page | `/` | Everyone |
+| **Staff Portal** | `/staff` | Staff (3), Managers (2), HR Executives (4), Directors (0) |
+| **Admin Panel** | `/admin` | Administrators (1), HR Executives (4), Directors (0) |
+| **Company Landing Page** | `/` | All users (public-facing) |
 
 ### 2.3 Logging In
-1. Open the appropriate portal URL in your browser.
-2. Enter your **Phone Number** in the phone field.
+1. Navigate to `/staff` or `/admin`.
+2. Enter your registered **Phone Number** (e.g., `0123456789`).
 3. Enter your **Password**.
-4. Click the **Log In** button.
-
-You will be redirected to your dashboard upon successful login.
-
-*Note: If you cannot log in, contact your administrator or manager to verify your account credentials and role assignment.*
-
-### 2.4 Logging Out
-Click on your profile name or avatar in the top-right corner of the screen and select **Sign Out** from the dropdown menu.
+4. Click **Sign In**.
 
 ---
 
 ## 3. Staff Portal – Employee Guide
 
-This section is for employees (Role 3 – Staff). After logging in to the Staff Portal (`/staff`), you will see your personal dashboard.
+### 3.1 Hero Shift Card Overview
+The top of your dashboard features the unified **Hero Shift Card**:
+- **Personal Greeting**: Displays your name and current operational date.
+- **Standing Indicator**: Shows `● Good Standing` when your record has zero infractions.
+- **Shift Status Badge**:
+  - `Ready to Start Shift` (before clock-in)
+  - `● On Duty · Started at 08:30 (2h 15m)` (while working)
+  - `✓ Shift Completed (08:30 - 17:30) · 9h 0m worked` (after shift close)
+- **Quick Metrics Strip**: Pinned horizontally at the bottom:
+  - **TODAY**: Total hours worked today.
+  - **THIS WEEK**: Cumulative hours from Monday to Sunday.
+  - **THIS MONTH**: Total completed shifts this calendar month.
 
-### 3.1 Dashboard Overview
-The Staff dashboard shows a summary of your attendance activity, including:
-- Total time worked today, this week, and this month
-- Your active or last shift details
-- Any pending approvals
-- Your warning/infraction count
+### 3.2 Clocking In (Single-Tap)
+1. On your Hero Shift Card, tap the primary green **`Clock In`** button.
+2. The browser automatically captures your GPS coordinates in the background.
+3. Verification is evaluated seamlessly:
+   - **Office IP match**: Shift is automatically **Approved**.
+   - **GPS radius match**: Shift is automatically **Approved**.
+   - **Group presence**: 5+ colleagues nearby within 50 meters auto-approves your presence.
+   - **Off-site work**: Shift transitions to **Pending** for manager verification.
 
-### 3.2 Clocking In
-1. On your dashboard, locate the **Clock In** widget.
-2. Click **Get Location** to capture your GPS coordinates (optional but recommended).
-3. Click **Clock In**.
-4. The system verifies your clock-in using this order:
-   - IP match against active site IPs
-   - GPS radius match (if location is provided)
-   - Group verification (5+ approved nearby clock-ins within 50m, last 2 hours)
-   - If verification succeeds → clock-in is **Approved** immediately.
-   - If verification fails → clock-in is set to **Pending** and requires manager approval.
-   - If you already completed one shift today, a new shift is always set to **Pending** for manager review.
-5. A notification will confirm the clock-in and indicate the verification result.
+### 3.3 Working Off-Site or at a Client Project
+1. Before tapping Clock In, click the link: **`▼ Working at a client site or off-site?`**.
+2. An expandable drawer appears:
+   - **Select Predefined Site**: Choose an assigned company site from the dropdown.
+   - **Or Enter Client Location**: Type your project name (e.g., *Petronas Subang Site*) and click **Set**.
+3. Tap **`Clock In`**. Your location name is attached to your shift record for manager approval.
 
-*Important: You must be connected to the site's designated network for IP verification to succeed. Clock-ins from unrecognised IP addresses will be flagged as pending.*
-
-### 3.3 Clocking Out
-1. On your dashboard, locate the **Clock Out** button in the Clock In/Out widget.
-2. Click **Clock Out**.
-3. Your attendance record status will update:
-   - If the shift was already **Approved** → status becomes **Completed**.
-   - If the shift was **Pending** → status becomes **Temporary** (awaiting manager approval).
-4. A success notification will appear.
-
-### 3.4 Viewing Your Attendance History
-Go to **Attendance Logs** in the left sidebar to see a full list of your past attendance records. Each record shows the date, site name, clock-in time, clock-out time, hours worked, overtime, and approval status.
-
-**Status Badge meanings:**
-
-| Status | Meaning |
-|---|---|
-| Pending | Clocked in; awaiting manager verification/approval |
-| Temporary | Clocked out; awaiting manager approval |
-| Approved | Shift approved by a manager (or auto-verified at clock-in) |
-| Completed | Approved shift with a successful clock-out |
-| Rejected | Rejected by manager – check the approval notes for the reason |
-
-### 3.5 Checking Your Warnings
-If you have missed clock-outs or violated attendance policies, warnings are recorded. Your dashboard **Warnings** widget shows:
-- **This Month Warnings** – count of auto clock-out incidents this month
-- **Total Infractions** – all-time count of missed clock-outs
-- **Status** – Good Standing or Escalated (at 3+ monthly warnings, your manager is alerted)
+### 3.4 Clocking Out
+1. When your shift ends, tap the red **`Clock Out`** button.
+2. Your shift duration is calculated instantly:
+   - Pre-verified shifts transition directly to **Completed**.
+   - Off-site shifts transition to **Temporary** awaiting manager sign-off.
 
 ---
 
-## 4. Staff Portal – Manager Guide
+## 4. Staff Portal – Manager & Supervisor Guide
 
-Managers (Role 2) have access to all Staff features plus approval, reporting, and team management tools.
+### 4.1 Manager Overview Strip
+Supervisors see an executive 3-card metric strip at the top of their dashboard:
+1. **Attendance Rate (Today)**: Live percentage of active subordinates on duty today (e.g., `100% · 2 of 2 staff` or accounting for staff on approved leave).
+2. **Team Total Hours**: Aggregate working hours delivered by your subordinates this month (formatted clearly as `92hrs 2 mins`).
+3. **Pending Approvals**: Live badge showing the total queue of subordinate clock-ins and leave applications awaiting your review.
 
-### 4.1 Approving Attendance Records
-1. Click **Clock-In Approvals** in the left sidebar (under **Management**).
-2. You will see a list of attendance records with status **Pending** or **Temporary**.
-3. Click the **✓ Approve** button on a record to approve it.
-   - A modal will appear where you can optionally add **Approval Notes**.
-   - Click **Approve** to confirm.
-4. Click the **✗ Reject** button to decline a record.
-   - You must enter a **Rejection Reason** (required).
-   - Click **Reject** to confirm.
+### 4.2 Clock-In Approvals (Hierarchical Governance)
+1. Click **Clock-In Approvals** in the sidebar.
+2. The queue strictly lists records belonging to your **assigned direct subordinates**.
+   *(Note: Fellow managers are excluded; your own supervisor or the Director approves your shifts).*
+3. Review the captured timestamp, GPS coordinates, and verification notes.
+4. Click **Approve** (with optional remarks) or **Reject** (with required reason).
+5. The employee immediately receives an in-app notification confirming your decision.
 
-*Note: You cannot approve or reject your own attendance records.*
+### 4.3 Leave & MC Approvals
+1. Click **Leave & MC Approvals** in the sidebar.
+2. Review the leave application details: applicant name, leave type, working days deducted, and dates.
+3. For medical leaves, click the **Attachment** link to inspect the uploaded doctor's Medical Certificate (MC).
+4. Click **Approve** or **Reject**. If rejected, provide an explanation note.
 
-You can also select multiple records and use **Bulk Actions** to approve or reject them together.
-
-### 4.2 Viewing All Employee Attendance
-Go to **Staff Attendance Overview** (under **Management**) to see attendance records for all staff employees. You can:
-- Filter by status, staff member, location, or date range
-- See clock-in/clock-out times, worked duration, and overtime
-- Edit approval notes on a record
-- Delete records if necessary
-
-### 4.3 Managing Staff Users
-Go to **Staff Management** (under **Company**) to manage employee accounts.
-
-**Managers can:**
-- **Create** new Staff (Role 3) user accounts
-- **Edit** staff user details
-- **Delete** staff user accounts
-
-*Note: Only Administrators can create Manager or Admin accounts.*
-
-### 4.4 Viewing Office Locations
-Go to **Office Locations** (under **Company**) to view the list of registered work sites. Each site shows its name, GPS coordinates, allowed radius, and active status. Click **Map** on any site to open it in Google Maps.
-
-*Note: Only Administrators can add or edit site details.*
-
-### 4.5 Exporting Attendance Data
-Managers can export attendance data by opening `/attendance/export`.  
-Print view is available at `/attendance/print`.
- 
-*Note: the current CSV export endpoint returns all attendance records (newest first), not the active table filters.*
-
-### 4.6 Vehicle Service Alerts
-Managers see a **Vehicle Service Alerts** widget on their dashboard, which lists vehicles that are due for service soon (within 500 km) or overdue. Click **Update Service** on a vehicle to set the next service mileage.
+### 4.4 Team Attendance & Overtime Trends Chart
+The interactive trends widget below your shift card visualizes:
+- **Attendance Rate (%)** (green area curve) across 7, 14, or 30 days.
+- **Overtime Hours** (blue line curve) tracking team extra hours.
+- Use the dropdown in the top-right corner to switch between Weekly, Bi-weekly, and Monthly scopes.
 
 ---
 
-## 5. Admin Panel Guide
+## 5. Admin Panel – Executive & HR Administration
 
-Administrators (Role 1) access the dedicated Admin Panel at `/admin`. This panel provides full control over all system data.
-
-### 5.1 User Management
-Navigate to **Staff Management** in the sidebar to create, edit, or deactivate user accounts.
-
-**Administrators can create users with any role:**
-
-| Field | Description |
-|---|---|
-| Name | Full name of the employee |
-| Phone | Mobile number used for login (must start with `01`, 10–11 digits) |
-| Password | Set initial password (hashed automatically) |
-| Role | 1 = Super Admin, 2 = Manager, 3 = Staff |
-
-### 5.2 Site Management
-Navigate to **Sites** to manage work locations.
-
-| Field | Description |
-|---|---|
-| Name | Human-readable site name |
-| IP Address | Allowed IP address for clock-in verification |
-| Latitude / Longitude | GPS coordinates of the site |
-| Radius (metres) | Acceptable GPS radius for location check |
-| Is Active | Toggle to enable/disable the site |
-
-### 5.3 Attendance Management
-The **Attendance Logs** resource gives the administrator a full view of every attendance record across all employees, with the ability to filter, edit, approve, or delete records.
-
-### 5.4 Bulk Actions
-On any resource list, check the checkbox next to one or more records and use the **Bulk Actions** dropdown to perform operations on multiple records at once.
+Administrators, HR Executives, and Directors access `/admin` for enterprise configuration:
+- **Staff Management**: Create users with explicit reporting lines (`manager_id`), assign roles, and toggle `is_active` status.
+- **Work Sites**: Configure static office IP addresses, GPS coordinates, and allowed geofence radii.
+- **Public Holidays**: View national and state holidays and trigger live API syncs via the **Sync Holidays from API** button.
+- **Company Attendance & Leaves**: View global company records with full search, date filters, CSV export, and printable audit sheets.
 
 ---
 
-## 6. Vehicle & Mileage Tracking
+## 6. Leave Management & Quota Tracking
 
-Tap and Track supports logging company vehicle mileage to track usage and flag upcoming or overdue service intervals.
+### 6.1 Quotas & Balances
+Every staff member receives an annual quota allocation:
+- **Annual Leave**: Typically 14 days/year.
+- **Medical Leave (MC)**: Typically 14 days/year.
+- **Hospitalization**: Typically 60 days/year.
 
-### 6.1 Viewing Vehicles
-Go to **Vehicles** (under **Fleet**) in the Staff Portal sidebar to see all registered company vehicles, their current mileage, next service mileage, and service status.
+Your current balances are displayed directly in the **Leave Quota Cards** on your dashboard (`14 / 14 Days Remaining`).
 
-| Status | Meaning |
-|---|---|
-| OK | Service not due yet |
-| Service Due Soon | Within 500 km of next service interval |
-| Service Overdue | Current mileage has reached or exceeded next service mileage |
+### 6.2 Applying for Leave
+1. Open **Apply / My Leave** from the sidebar.
+2. Click **New Leave Request**.
+3. Select **Leave Type** (Annual, Medical, or Hospitalization).
+4. Pick **Start Date** and **End Date**.
+5. **Smart Working Days Calculation**:
+   - The system automatically inspects weekend rest days and recognized Malaysian public holidays.
+   - Only legitimate working days are deducted from your balance.
+   - Example: A Friday-to-Monday leave over a public holiday automatically calculates as 1 working day instead of 4 calendar days.
+6. Attach supporting documentation (mandatory for Medical and Hospitalization leaves).
+7. Enter a brief reason and click **Submit**.
 
-### 6.2 Logging Mileage
-1. Navigate to **Mileage Logs** (under **Fleet**) in the sidebar.
+---
+
+## 7. Malaysian Public Holidays Calendar
+
+1. Open **Public Holidays** from the sidebar.
+2. View all upcoming holidays with countdown status (*"In 5 days"*, *"Today"*, or *"Passed"*).
+3. **Observing States Hover Tooltip**:
+   - For state holidays, hover your mouse over the **State Holiday** badge or holiday name.
+   - A tooltip popup displays the full list of observing states (e.g., *"Applicable in: Selangor, WP Kuala Lumpur, Putrajaya"*).
+4. Use the **State Filter** dropdown to view holidays specifically applicable to your work territory.
+
+---
+
+## 8. Fleet Compliance & Vehicle Tracking
+
+### 8.1 Vehicle Inventory & Status
+Navigate to **Fleet → Vehicles** to inspect company fleet vehicles:
+- **OK**: Vehicle mileage is well within maintenance limits.
+- **Service Due Soon**: Remaining distance to service is ≤ 500 KM.
+- **Service Overdue**: Current mileage has reached or exceeded next service threshold (highlighted in red).
+- **Road Tax Expiry**: Shows expiration dates with color alerts for road taxes expiring within 30 days or already expired.
+
+### 8.2 Logging Trip Mileage
+1. Open **Fleet → Mileage Logs**.
 2. Click **New Mileage Log**.
-3. Select the **Vehicle** from the dropdown. The current odometer reading will be shown as a hint.
-4. Enter the **Odometer Reading (KM)** – this is the odometer reading at the time you are starting the journey (must be equal to or greater than the vehicle's current mileage).
-5. Confirm the **Date & Time** of the log.
-6. Optionally add any **Notes** (trip details, fuel, etc.).
-7. Click **Save**.
-
-*The mileage reading is recorded once at journey start. Each log captures a single odometer snapshot to track the vehicle's usage over time.*
-
-### 6.3 Editing Mileage Logs
-- **Managers** can edit any mileage log at any time.
-- **Staff** can edit their own logs within 24 hours of creation.
+3. Select the vehicle and record the odometer reading at the start/end of your journey.
+4. Save the log to update the vehicle's telemetry.
 
 ---
 
-## 7. Safety Net & Warning System
+## 9. Safety Net & Disciplinary System
 
-The Safety Net System protects both employees and the organisation by automatically handling missed clock-outs and escalating repeated violations.
+### 9.1 16-Hour Automated Shift Closure
+To prevent forgotten shifts from corrupting payroll, any shift left open for **16 hours** or longer is automatically closed by the system:
+- Status is converted to **Temporary**.
+- An `AttendanceInfraction` (`forgot_clock_out`) is recorded.
+- An urgent notification is dispatched to both employee and direct supervisor.
 
-### 7.1 Auto Clock-Out
-If an employee has not clocked out after **16 hours** (configurable via `ATTENDANCE_MAX_SHIFT_HOURS`), the system will automatically clock them out the next time their dashboard loads.
-
-- The attendance record will be set to status **Temporary** (the auto clock-out time is set to `clock_in_time + max_shift_hours`).
-- The record is then submitted for manager review.
-- An infraction (`forgot_clock_out`) is recorded and the employee's `incomplete_clock_out_count` is incremented.
-
-### 7.2 Warning Escalation
-
-| This Month Warnings | Dashboard Warning Widget |
-|---|---|
-| 0 | ✓ Good Standing |
-| 1 | First warning – visible on dashboard |
-| 2 | Final warning – visible on dashboard |
-| 3+ | Escalated – manager review needed |
-
-*Note: `incomplete_clock_out_count` is still tracked as all-time infractions, but escalation in the warning widget is based on monthly warnings.*
-
-### 7.3 Resetting Warnings
-The warning counter is system-managed in the current UI and is not directly editable from Filament forms.
-If a reset is required, it must be done manually at database level by an administrator with backend access.
+### 9.2 Good Standing & Escalation
+- **0 Infractions**: Account is in `● Good Standing`.
+- **1st Infraction**: Informational notice.
+- **2nd Infraction**: Formal warning notice.
+- **3+ Infractions**: Escalation alert flagging manager disciplinary review.
 
 ---
 
-## 8. Troubleshooting & FAQs
+## 10. In-App Notification Bell
 
-| Problem | Possible Cause | Solution |
+The top header bar features a real-time **Notification Bell** with 30-second background polling:
+- **Leave Alerts**: Immediate notification when a subordinate applies, or when your supervisor approves/rejects your leave with notes.
+- **Clock-In Alerts**: Alerts managers when an off-site technician requires attendance verification.
+- **Compliance Alerts**: Dispatches 14-day advance notices for expiring vehicle road taxes.
+- Click any notification to jump directly to the relevant approval queue or record.
+
+---
+
+## 11. Troubleshooting & FAQs
+
+| Problem | Likely Cause | Solution |
 |---|---|---|
-| Cannot log in | Wrong phone number or password | Check credentials; contact your admin or manager |
-| Clock In button disabled | Already clocked in | Check your active shift; clock out first |
-| Clock-in shows "Pending" | IP address not recognised | Manager will review and approve; or connect to the site network |
-| Attendance shows "Temporary" | Clocked out but not yet approved | Wait for manager approval |
-| Cannot see Approvals menu | Role is Staff (3), not Manager (2) | Request role change from admin |
-| Cannot see Manager features | Logged in as Staff | Log in with a Manager account |
-| Export not downloading | Browser pop-up blocker | Allow pop-ups for the application URL |
-| Vehicle shows "Service Overdue" | Mileage logged exceeds service threshold | Arrange vehicle service and update the next service mileage |
-| Attendance was auto clocked out | Shift was open for 16+ hours | Contact manager for approval review; avoid leaving shifts open overnight |
+| Clock-in shows "Pending" | Clocked in outside registered office IP or off-site | Normal behavior; your manager will verify and approve your record |
+| Cannot see subordinate in approvals | Subordinate is not assigned your `manager_id` | Contact HR or Admin to assign the reporting line in Staff Management |
+| Cannot apply for leave | Requested working days exceed remaining quota balance | Check your leave balance cards; select dates within your quota |
+| Medical leave upload rejected | File format or missing attachment | Attach a clear image (JPG/PNG) or PDF copy of your medical certificate |
+| Holiday not showing for my state | Filter set to another state or holiday not synced | Select your state in the filter, or ask HR to run "Sync Holidays from API" |
 
 ---
 
-## 9. Glossary
+## 12. Glossary
 
-| Term | Definition |
-|---|---|
-| Clock In | Recording the start of a work shift |
-| Clock Out | Recording the end of a work shift |
-| Safety Net | Automated system that closes shifts open for 16+ hours |
-| IP Verification | Matching the employee's network IP to the registered site IP |
-| Infraction | A recorded violation of attendance policy (e.g., forgot to clock out) |
-| `incomplete_clock_out_count` | Cumulative count of auto clock-out incidents for a user |
-| Approval Status | The current state of an attendance record (Pending / Temporary / Approved / Completed / Rejected) |
-| Filament | The Laravel admin panel framework used to build the UI |
-| Site | A registered physical work location with IP and GPS data |
-| Mileage Reading | The odometer value recorded at the start of a vehicle journey |
-| Operational Day | The 24-hour window starting at `ATTENDANCE_DAY_START_HOUR` (default 08:00), used for daily attendance metrics |
+- **Hero Shift Card**: The unified single-card interface on the staff dashboard combining greeting, status, action button, and footer stats.
+- **Smart Working Days**: Leave calculation logic that excludes weekend days and Malaysian public holidays.
+- **Subordinate Governance**: Strict permission model where supervisors only access staff reporting directly to them.
+- **Operational Day**: 24-hour attendance window (default 08:00 AM start with 2-hour early buffer) ensuring shifts are correctly attributed.
