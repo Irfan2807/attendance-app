@@ -14,3 +14,10 @@ Schedule::command('attendance:auto-clock-out')
     ->withoutOverlapping()
     ->runInBackground();
 
+// Sync Malaysian public holidays monthly to ensure updated calendar
+Schedule::command('holidays:sync')
+    ->monthly()
+    ->withoutOverlapping()
+    ->runInBackground();
+
+

@@ -6,6 +6,7 @@ use App\Enums\LeaveStatus;
 use App\Enums\LeaveType;
 use App\Filament\Staff\Resources\StaffLeaveRequestResource\Pages;
 use App\Models\LeaveRequest;
+use App\Services\HolidayService;
 use Carbon\Carbon;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -86,7 +87,7 @@ class StaffLeaveRequestResource extends Resource
                             }),
 
                         Forms\Components\TextInput::make('days_count')
-                            ->label('Total Days')
+                            ->label('Working Days (Deducted)')
                             ->numeric()
                             ->default(1.0)
                             ->step(0.5)
@@ -106,7 +107,29 @@ class StaffLeaveRequestResource extends Resource
                                     }
                                 },
                             ])
-                            ->helperText('e.g. 1.0 for full day, 0.5 for half day.'),
+                            ->helperText(function (Forms\Get $get) {
+                                $start = $get('start_date');
+                                $end = $get('end_date');
+                                if (! $start || ! $end) {
+                                    return 'Smart calculation auto-excludes weekends and public holidays. (1.0 for full day, 0.5 for half day).';
+                                }
+
+                                $breakdown = HolidayService::getRangeBreakdown($start, $end);
+                                $exclusions = [];
+                                if ($breakdown['weekend_days'] > 0) {
+                                    $exclusions[] = "{$breakdown['weekend_days']} weekend day(s)";
+                                }
+                                if ($breakdown['public_holiday_days'] > 0) {
+                                    $names = $breakdown['holidays']->pluck('name')->unique()->take(2)->join(', ');
+                                    $exclusions[] = "{$breakdown['public_holiday_days']} public holiday(s) [{$names}]";
+                                }
+
+                                if (! empty($exclusions)) {
+                                    return "Smart calculation: {$breakdown['working_days']} working day(s) deducted (" . implode(' and ', $exclusions) . " excluded).";
+                                }
+
+                                return "Calculated working days: {$breakdown['working_days']} day(s).";
+                            }),
 
                         Forms\Components\DatePicker::make('start_date')
                             ->label('Start Date')
@@ -117,8 +140,8 @@ class StaffLeaveRequestResource extends Resource
                                 $start = $get('start_date');
                                 $end = $get('end_date');
                                 if ($start && $end) {
-                                    $days = Carbon::parse($start)->diffInDays(Carbon::parse($end)) + 1;
-                                    $set('days_count', max(1, $days));
+                                    $workingDays = HolidayService::calculateWorkingDays($start, $end);
+                                    $set('days_count', max(0.5, $workingDays));
                                 }
                             }),
 
@@ -132,8 +155,8 @@ class StaffLeaveRequestResource extends Resource
                                 $start = $get('start_date');
                                 $end = $get('end_date');
                                 if ($start && $end) {
-                                    $days = Carbon::parse($start)->diffInDays(Carbon::parse($end)) + 1;
-                                    $set('days_count', max(1, $days));
+                                    $workingDays = HolidayService::calculateWorkingDays($start, $end);
+                                    $set('days_count', max(0.5, $workingDays));
                                 }
                             }),
 

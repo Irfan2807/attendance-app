@@ -22,4 +22,9 @@ return [
     // Legacy shift window values retained for existing operational-day logic.
     'day_shift_ot_starts_at' => env('ATTENDANCE_DAY_OT_START_HOUR', 17),
     'night_shift_standard_hours' => env('ATTENDANCE_NIGHT_STANDARD_HOURS', 8),
+
+    // Malaysia Public Holiday API & Default State (e.g. SGR for Selangor, KTN for Kelantan, etc.)
+    'holiday_api_url' => env('MALAYSIA_HOLIDAY_API_URL', 'https://malaysia-holiday.dydxsoft.my/api/v1'),
+    'holiday_state' => env('MALAYSIA_HOLIDAY_DEFAULT_STATE', 'SGR'),
 ];
+
