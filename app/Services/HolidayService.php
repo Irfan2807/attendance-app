@@ -17,6 +17,28 @@ class HolidayService
     public const FRIDAY_WEEKEND_STATES = ['KTN', 'TRG', 'KDH', 'JHR'];
 
     /**
+     * Official mapping of Malaysian state codes to state names.
+     */
+    public const STATE_NAMES = [
+        'JHR' => 'Johor',
+        'KDH' => 'Kedah',
+        'KTN' => 'Kelantan',
+        'MLK' => 'Melaka',
+        'NSN' => 'Negeri Sembilan',
+        'PHG' => 'Pahang',
+        'PRK' => 'Perak',
+        'PLS' => 'Perlis',
+        'PNG' => 'Pulau Pinang',
+        'SBH' => 'Sabah',
+        'SWK' => 'Sarawak',
+        'SGR' => 'Selangor',
+        'TRG' => 'Terengganu',
+        'KUL' => 'WP Kuala Lumpur',
+        'LBN' => 'WP Labuan',
+        'PJY' => 'WP Putrajaya',
+    ];
+
+    /**
      * Get the default Malaysian state from config.
      */
     public static function defaultState(): string

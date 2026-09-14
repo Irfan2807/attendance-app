@@ -49,3 +49,4 @@ class ListPublicHolidays extends ListRecords
         ];
     }
 }
+

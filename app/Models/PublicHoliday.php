@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\HolidayService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -64,4 +65,19 @@ class PublicHoliday extends Model
 
         return in_array(strtoupper(trim($stateCode)), $this->state_codes, true);
     }
+
+    public function formattedStateNames(): string
+    {
+        if ($this->is_nationwide || empty($this->state_codes)) {
+            return 'All Malaysian states & federal territories';
+        }
+
+        $names = array_map(
+            fn ($code) => HolidayService::STATE_NAMES[strtoupper($code)] ?? strtoupper($code),
+            $this->state_codes
+        );
+
+        return implode(', ', $names);
+    }
 }
+

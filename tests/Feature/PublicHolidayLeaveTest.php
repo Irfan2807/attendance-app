@@ -232,4 +232,29 @@ class PublicHolidayLeaveTest extends TestCase
         $staffResponse->assertSuccessful();
         $staffResponse->assertSee('Hari Malaysia');
     }
+
+    public function test_formatted_state_names_resolves_official_names(): void
+    {
+        $holiday = PublicHoliday::create([
+            'name' => 'Thaipusam',
+            'date' => '2026-02-01',
+            'day_name' => 'Sunday',
+            'state_codes' => ['JHR', 'KUL', 'PNG', 'SGR'],
+            'is_nationwide' => false,
+            'year' => 2026,
+        ]);
+
+        $this->assertSame('Johor, WP Kuala Lumpur, Pulau Pinang, Selangor', $holiday->formattedStateNames());
+
+        $national = PublicHoliday::create([
+            'name' => 'Hari Merdeka',
+            'date' => '2026-08-31',
+            'day_name' => 'Monday',
+            'is_nationwide' => true,
+            'year' => 2026,
+        ]);
+
+        $this->assertSame('All Malaysian states & federal territories', $national->formattedStateNames());
+    }
 }
+

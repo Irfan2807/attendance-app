@@ -42,3 +42,4 @@ class SyncHolidaysCommand extends Command
         return self::FAILURE;
     }
 }
+

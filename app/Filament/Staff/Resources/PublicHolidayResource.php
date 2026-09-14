@@ -56,13 +56,15 @@ class PublicHolidayResource extends Resource
                 Tables\Columns\TextColumn::make('name')
                     ->label('Holiday Name')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->tooltip(fn (PublicHoliday $record): string => $record->is_nationwide ? 'Nationwide Public Holiday' : 'States on holiday: ' . $record->formattedStateNames()),
 
                 Tables\Columns\TextColumn::make('coverage')
                     ->label('Type')
                     ->badge()
                     ->getStateUsing(fn (PublicHoliday $record): string => $record->is_nationwide ? 'Nationwide' : 'State Holiday')
-                    ->color(fn (string $state): string => $state === 'Nationwide' ? 'success' : 'info'),
+                    ->color(fn (string $state): string => $state === 'Nationwide' ? 'success' : 'info')
+                    ->tooltip(fn (PublicHoliday $record): string => $record->is_nationwide ? 'Nationwide (All States & Federal Territories)' : 'Applicable in: ' . $record->formattedStateNames()),
 
                 Tables\Columns\TextColumn::make('status')
                     ->label('Status')
