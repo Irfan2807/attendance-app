@@ -11,9 +11,9 @@ use Livewire\Attributes\Lazy;
 #[Lazy]
 class StaffAttendanceTrendsWidget extends ChartWidget
 {
-    protected static ?string $heading = 'Team Attendance & Punctuality Trends';
+    protected static ?string $heading = 'Team Attendance & Overtime Trends';
 
-    protected static ?string $description = 'Tracks daily workforce attendance rate, on-time arrivals, and overtime hours.';
+    protected static ?string $description = 'Tracks daily workforce attendance rate and overtime hours.';
 
     protected static ?int $sort = 3;
 
@@ -39,15 +39,13 @@ class StaffAttendanceTrendsWidget extends ChartWidget
     {
         $days = (int) ($this->filter ?? 14);
 
-        $metrics = Cache::remember('staff_attendance_trend_chart_v2_' . $days, 120, function () use ($days): array {
+        $metrics = Cache::remember('staff_attendance_trend_chart_v3_' . $days, 120, function () use ($days): array {
             $attendance = AttendanceAnalyticsService::attendanceRateTrend($days);
-            $punctuality = AttendanceAnalyticsService::punctualityRateTrend($days);
             $overtime = AttendanceAnalyticsService::overtimeTrend($days);
 
             return [
                 'labels' => $attendance['labels'],
                 'attendance_rate' => $attendance['rates'],
-                'punctuality_rate' => $punctuality['rates'],
                 'overtime_hours' => $overtime['hours'],
             ];
         });
@@ -59,15 +57,6 @@ class StaffAttendanceTrendsWidget extends ChartWidget
                     'data' => $metrics['attendance_rate'],
                     'borderColor' => '#22c55e',
                     'backgroundColor' => 'rgba(34, 197, 94, 0.1)',
-                    'tension' => 0.3,
-                    'yAxisID' => 'y',
-                    'fill' => true,
-                ],
-                [
-                    'label' => 'Punctuality Rate (%)',
-                    'data' => $metrics['punctuality_rate'],
-                    'borderColor' => '#f59e0b',
-                    'backgroundColor' => 'rgba(245, 158, 11, 0.1)',
                     'tension' => 0.3,
                     'yAxisID' => 'y',
                     'fill' => true,
