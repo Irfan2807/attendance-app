@@ -1,7 +1,7 @@
 # Tap and Track – Software Requirements Specification (SRS)
 
-**Version:** 2.0  
-**Date:** September 14, 2026  
+**Version:** 2.1  
+**Date:** September 21, 2026  
 **Application:** Tap and Track – Attendance, Leave & Operations Management System  
 
 ---
@@ -30,9 +30,11 @@ This Software Requirements Specification (SRS) describes the functional and non-
 Tap and Track is a web-based enterprise workforce platform that automates:
 - Employee clock-in and clock-out with automated GPS geolocation and IP verification.
 - Leave management across Annual, Medical (MC), and Hospitalization leave with quota tracking, proof attachment, and smart working-day deductions.
+- Secure, private storage for sensitive medical certificates (MCs) enforcing Malaysia's Personal Data Protection Act (PDPA 2010) with role-based streaming.
 - Malaysian Public Holidays synchronization from official API sources with state-based observance indicators.
 - Fleet vehicle tracking, odometer logs, maintenance alerts, and road tax compliance scanners.
 - Hierarchical approval governance eliminating peer approvals.
+- Monthly Timesheet & Attendance Card generation with A4 printable cards, formal dual signature blocks, all-staff payroll bundles, and sanitized CSV exports.
 - Real-time in-app notification bells with 30-second Livewire polling.
 
 ### 1.3 Definitions, Acronyms, and Abbreviations
@@ -45,6 +47,8 @@ Tap and Track is a web-based enterprise workforce platform that automates:
 | IP | Internet Protocol address |
 | SLA | Service Level Agreement (Approval turnaround time) |
 | MC | Medical Certificate / Medical Leave |
+| PDPA | Personal Data Protection Act 2010 (Malaysia) |
+| CSV | Comma-Separated Values |
 | API | Application Programming Interface |
 | FR | Functional Requirement |
 | NFR | Non-Functional Requirement |
@@ -53,6 +57,7 @@ Tap and Track is a web-based enterprise workforce platform that automates:
 - Laravel 12 Documentation – https://laravel.com/docs
 - Filament 3.2 Documentation – https://filamentphp.com/docs
 - Malaysia Public Holidays API – https://malaysia-holiday.dydxsoft.my
+- Personal Data Protection Act (PDPA) 2010 Laws of Malaysia
 - Tap and Track README.md
 
 ---
@@ -60,15 +65,18 @@ Tap and Track is a web-based enterprise workforce platform that automates:
 ## 2. Overall Description
 
 ### 2.1 Product Perspective
-Tap and Track is a unified workforce management application accessible via modern web browsers. It includes two Filament-powered portals: the **Admin Panel** (`/admin`) for executive management and system configuration, and the **Staff Portal** (`/staff`) for daily shifts, team supervision, and leave applications.
+Tap and Track is a unified workforce management application accessible via modern web browsers. It includes two Filament-powered portals accessed via a single unified entry point (`/login`): the **Admin Panel** (`/admin`) for executive management and system configuration, and the **Staff Portal** (`/staff`) for daily shifts, team supervision, and leave applications.
 
 ### 2.2 Product Functions (Summary)
+- **Unified Single-Sign-On Gateway**: All personnel log in via a single `/login` page; the system automatically authenticates phone numbers and routes users to their authorized portal.
 - **Hero Shift Single-Card Interface**: One-tap clock in/out with background geolocation capture and friendly off-site location selection.
 - **Safety Net System**: Shift auto-closure after 16 hours (`ATTENDANCE_MAX_SHIFT_HOURS`), recording safety infractions and warning counters.
 - **Hierarchical Approvals**: Managers review assigned subordinates only; Directors and HR Executives review managers. Peer approvals and self-approvals are blocked.
 - **Leave Quota & Balance Engine**: Annual, MC, and Hospitalization quotas tracked per user per calendar year. Smart working-day calculations automatically exclude weekends and Malaysian public holidays.
+- **PDPA Medical Certificate Privacy**: Medical certificates (MCs) are quarantined in private server storage (`storage/app/private`) and streamed through an authenticated RBAC gateway, restricting access strictly to the applicant, their assigned manager, HR, and Directors.
 - **Malaysian Public Holidays Integration**: Synced calendar from Malaysia Public Holiday API with state filters and hover tooltips showing observing states.
 - **Fleet & Road Tax Compliance**: Vehicle mileage logging, service interval calculation, and daily compliance scans alerting on road taxes expiring within 14 days.
+- **Monthly Timesheets & Payroll Engine**: On-demand monthly reporting hub (`/attendance/monthly-report`), A4 printable attendance cards with formal employee & HR signature blocks, all-staff compiled payroll bundles, and CSV summary exports.
 - **In-App Notification Bell**: Topbar alert dropdown with 30s Livewire polling for leave submissions, approval outcomes, clock-in decisions, and fleet alerts.
 - **Operational Analytics**: Managerial trend charts tracking daily workforce attendance and overtime hours, plus total monthly team hours formatted as `Xhrs Y mins`.
 
@@ -118,6 +126,7 @@ Tap and Track is a unified workforce management application accessible via moder
 
 ### 4.1 Authentication & Hierarchical RBAC
 - **FR-01**: Authenticate users via unique phone number and password.
+- **FR-01a**: Provide a single unified login portal at `/login` that authenticates credentials and automatically routes users to their authorized workspace (`/admin` for Directors, `/staff` for Managers, Field Staff, and HR Executives). Direct unauthenticated requests to `/staff` or `/admin` shall redirect to `/login`.
 - **FR-02**: Enforce 4 canonical system roles: Director / Super Admin (1), Operations Manager (2), Field Staff (3), and HR Executive (4).
 - **FR-03**: Support explicit reporting hierarchy via `manager_id` foreign key on the `users` table.
 - **FR-04**: Direct managers shall only access and approve records belonging to their assigned subordinates. Peer-manager approvals and self-approvals shall be rejected server-side.
@@ -164,6 +173,7 @@ Tap and Track is a unified workforce management application accessible via moder
 - **FR-30**: Generate an audit-ready individual A4 Monthly Attendance Slip (`/attendance/monthly-slip/{user}`) featuring daily logs, overtime calculations, and formal signature blocks for employee and HR certification.
 - **FR-31**: Generate a multi-page compiled All-Staff Payroll Bundle (`/attendance/monthly-bundle`) formatted with page-breaks for 1-click printing or PDF export.
 - **FR-32**: Stream a payroll-ready summary CSV (`/attendance/monthly-summary-csv`) with formula injection sanitization (CWE-1236).
+- **FR-33**: Enable field staff and managers to access their own monthly timesheet slip directly from the Staff Operations portal via a dedicated header/row action.
 
 ---
 

@@ -1,7 +1,7 @@
 # Tap and Track – User Guide
 
-**Version:** 2.0  
-**Date:** September 14, 2026  
+**Version:** 2.1  
+**Date:** September 21, 2026  
 **Application:** Tap and Track – Attendance, Leave & Operations Management System  
 
 ---
@@ -103,6 +103,13 @@ The top of your dashboard features the unified **Hero Shift Card**:
    - Pre-verified shifts transition directly to **Completed**.
    - Off-site shifts transition to **Temporary** awaiting manager sign-off.
 
+### 3.5 Viewing & Printing My Monthly Timesheet Slip
+1. Open **Management &rarr; Staff Attendance Overview** (or navigate to `/attendance/monthly-slip/{your_id}`).
+2. Review your personal 30/31-day attendance calendar with color-coded status badges (*Present*, *Overtime*, *Late*, *Medical Leave*, *Rest Day*).
+3. Inspect your monthly KPI summary: regular hours, overtime hours, approved leave days, and late starts.
+4. Click **Print Slip** (or press `Ctrl+P`) to print your official A4 monthly attendance card.
+5. Sign the **Employee Declaration** box at the bottom of the sheet and submit it to HR for monthly payroll sign-off.
+
 ---
 
 ## 4. Staff Portal – Manager & Supervisor Guide
@@ -176,7 +183,10 @@ Your current balances are displayed directly in the **Leave Quota Cards** on you
    - The system automatically inspects weekend rest days and recognized Malaysian public holidays.
    - Only legitimate working days are deducted from your balance.
    - Example: A Friday-to-Monday leave over a public holiday automatically calculates as 1 working day instead of 4 calendar days.
-6. Attach supporting documentation (mandatory for Medical and Hospitalization leaves).
+6. **Attach Supporting Documentation (Medical Certificate)**:
+   - Mandatory for Medical Leave (MC) and Hospitalization.
+   - Supported formats: PDF, PNG, JPG up to 10MB.
+   - **PDPA Privacy Guarantee**: Under Malaysia's Personal Data Protection Act (PDPA 2010), your uploaded medical certificates are stored securely on a private server disk (`storage/app/private`) outside the web root. Files are streamed exclusively through an authenticated RBAC gateway. Only you, your direct reporting manager, HR executives, and the Director have permission to view your medical records.
 7. Enter a brief reason and click **Submit**.
 
 ---
@@ -243,7 +253,11 @@ The top header bar features a real-time **Notification Bell** with 30-second bac
 | Cannot see subordinate in approvals | Subordinate is not assigned your `manager_id` | Contact HR or Admin to assign the reporting line in Staff Management |
 | Cannot apply for leave | Requested working days exceed remaining quota balance | Check your leave balance cards; select dates within your quota |
 | Medical leave upload rejected | File format or missing attachment | Attach a clear image (JPG/PNG) or PDF copy of your medical certificate |
+| 403 Forbidden on MC Attachment | Attempting to access an unrelated staff member's MC | By law (PDPA 2010), only the employee, direct supervisor, HR, and Directors may inspect medical certificates |
+| How to print clean A4 Timesheet Slip? | Browser printing settings | Click **Print Slip** or press `Ctrl+P`. Set Destination to *Save as PDF*, Layout to *Portrait*, Paper size to *A4*, and Margins to *Default* |
+| Where do I sign on the Timesheet? | Bottom signature boxes | The slip includes formal signature boxes for both **Employee Declaration** and **HR / Management Verification & Stamp** |
 | Holiday not showing for my state | Filter set to another state or holiday not synced | Select your state in the filter, or ask HR to run "Sync Holidays from API" |
+| Which login link should I use? | Separate portal confusion | Use the unified link: `/login`. The system automatically routes you to `/admin` or `/staff` based on your role |
 
 ---
 
