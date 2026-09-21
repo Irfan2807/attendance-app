@@ -216,7 +216,7 @@ class VehicleResource extends Resource
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make()
-                    ->visible(fn() => Auth::user()->role === 2),
+                    ->visible(fn() => Auth::user()?->isManagerOrAdmin()),
             ])
             ->bulkActions([
                 //

@@ -195,7 +195,7 @@ class StaffAttendanceResource extends Resource
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\DeleteAction::make()
-                    ->visible(fn() => Auth::user()->role === 2), // Only managers can delete
+                    ->visible(fn() => Auth::user()?->isManagerOrAdmin()),
             ])
             ->bulkActions([
                 //

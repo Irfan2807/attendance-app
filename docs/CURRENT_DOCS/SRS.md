@@ -218,7 +218,7 @@ Tap and Track is a unified workforce management application accessible via moder
 ### 7.2 Core Tables
 
 **Table: `users`**
-`id`, `name`, `phone`, `password`, `role` (0=Director, 1=Admin, 2=Manager, 3=Staff, 4=HRExecutive), `manager_id` (FK), `is_active` (boolean), `incomplete_clock_out_count`, timestamps.
+`id`, `name`, `phone`, `password`, `role` (1=Director/SuperAdmin, 2=Manager, 3=Staff, 4=HRExecutive), `manager_id` (FK), `is_active` (boolean), `incomplete_clock_out_count`, timestamps.
 
 **Table: `attendances`**
 `id`, `user_id` (FK), `site_name`, `latitude`, `longitude`, `status` (`pending`, `approved`, `rejected`, `temporary`, `completed`), `clock_in_time`, `clock_out_time`, `verification_notes`, `approval_notes`, `approved_by` (FK), `approved_at`, timestamps.

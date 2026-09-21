@@ -311,25 +311,24 @@ class UserResource extends Resource
                     ->openUrlInNewTab(),
                 Tables\Actions\ViewAction::make(),
 
-                // 5. Edit Permission: Managers can only edit Staff
-                // usage of '?->' makes this null-safe
+                // 5. Edit Permission: Admins can edit anyone; Managers can only edit Staff
                 Tables\Actions\EditAction::make()
                     ->visible(fn (User $record) => 
-                        Auth::user()?->role === 1 || 
-                        (Auth::user()?->role === 2 && $record->role === 3)
+                        Auth::user()?->isAdmin() || 
+                        (Auth::user()?->isManager() && $record->isStaff())
                     ),
 
-                // 6. Delete Permission: Managers can only delete Staff
+                // 6. Delete Permission: Admins can delete anyone; Managers can only delete Staff
                 Tables\Actions\DeleteAction::make()
                     ->visible(fn (User $record) => 
-                        Auth::user()?->role === 1 || 
-                        (Auth::user()?->role === 2 && $record->role === 3)
+                        Auth::user()?->isAdmin() || 
+                        (Auth::user()?->isManager() && $record->isStaff())
                     ),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn () => Auth::user()?->role === 1),
+                        ->visible(fn () => Auth::user()?->isAdmin()),
                 ]),
             ]);
     }

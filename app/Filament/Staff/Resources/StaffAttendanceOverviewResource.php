@@ -50,7 +50,7 @@ class StaffAttendanceOverviewResource extends Resource
         // Show only role-3 (Staff) attendance records, excluding the manager's own records.
         return parent::getEloquentQuery()
             ->with(['user', 'approver'])
-            ->whereHas('user', fn ($q) => $q->where('role', 3))
+            ->whereHas('user', fn ($q) => $q->where('role', \App\Enums\Role::Staff->value))
             ->orderByDesc('clock_in_time');
     }
 
