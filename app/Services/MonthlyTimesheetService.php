@@ -48,7 +48,7 @@ class MonthlyTimesheetService
     /**
      * Fetch complete month data for an individual user (all days + KPIs).
      */
-    public static function getUserMonthlyData(User $user, int $month, int $year): array
+    public static function getUserMonthlyData(User $user, int $month, int $year, ?Collection $preloadedHolidays = null): array
     {
         $startOfMonth = Carbon::create($year, $month, 1)->startOfDay();
         $endOfMonth = $startOfMonth->copy()->endOfMonth()->endOfDay();
@@ -74,8 +74,8 @@ class MonthlyTimesheetService
             ->whereDate('end_date', '>=', $startOfMonth->toDateString())
             ->get();
 
-        // 3. Fetch public holidays in this month
-        $holidays = PublicHoliday::inDateRange($startOfMonth, $endOfMonth)->get();
+        // 3. Fetch public holidays in this month (use preloaded collection if supplied)
+        $holidays = $preloadedHolidays ?? PublicHoliday::inDateRange($startOfMonth, $endOfMonth)->get();
         $holidaysByDate = $holidays->keyBy(function (PublicHoliday $h) {
             return $h->date instanceof Carbon ? $h->date->format('Y-m-d') : Carbon::parse($h->date)->format('Y-m-d');
         });
@@ -273,6 +273,10 @@ class MonthlyTimesheetService
 
         $users = $usersQuery->get();
 
+        $startOfMonth = Carbon::create($year, $month, 1)->startOfDay();
+        $endOfMonth = $startOfMonth->copy()->endOfMonth()->endOfDay();
+        $preloadedHolidays = PublicHoliday::inDateRange($startOfMonth, $endOfMonth)->get();
+
         $staffSummaries = [];
         $companyTotals = [
             'staff_count' => $users->count(),
@@ -285,7 +289,7 @@ class MonthlyTimesheetService
         ];
 
         foreach ($users as $u) {
-            $data = self::getUserMonthlyData($u, $month, $year);
+            $data = self::getUserMonthlyData($u, $month, $year, $preloadedHolidays);
             $kpi = $data['kpi'];
 
             $staffSummaries[] = [
