@@ -137,8 +137,8 @@ Once linked, the same bot connection can be repurposed for real-time system aler
 - [ ] **8.1** `README.md`: Update setup instructions with Telegram bot environment variables.
 - [ ] **8.2** `docs/active_docs/SRS.md`: Document Functional Requirement for 2FA Telegram Password Reset.
 - [ ] **8.3** `docs/active_docs/User_Guide.md`: Add step-by-step instructions for employees on linking Telegram and resetting passwords.
-- [ ] **8.4** `docs/active_docs/PROJECT_REPORT_SUMMARY.md`: Add Telegram integration to technical innovations summary.
-- [ ] **8.5** `docs/active_docs/FYP2_REPORT_CURRENT.md`: Update Chapter 4 (Implementation) and Chapter 5 (Testing & Security Verification) with sequence diagrams and screenshots.
+- [ ] **8.4** `docs/inactive_docs/PROJECT_REPORT_SUMMARY.md`: Add Telegram integration to technical innovations summary.
+- [ ] **8.5** `docs/inactive_docs/FYP2_REPORT_CURRENT.md`: Update Chapter 4 (Implementation) and Chapter 5 (Testing & Security Verification) with sequence diagrams and screenshots.
 
 ---
 
