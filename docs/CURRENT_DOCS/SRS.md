@@ -90,26 +90,27 @@ Tap and Track is a unified workforce management application accessible via moder
 
 | User Class | Role Code | Description | Default Portal |
 |---|---|---|---|
-| **Director** | 0 | Executive oversight; reviews managers' leaves and shifts; global operations | `/admin` & `/staff` |
-| **Administrator** | 1 | Full system configuration, user management, site setup, and raw audit logs | `/admin` |
-| **Manager** | 2 | Team supervisor; manages assigned direct subordinates; reviews shifts and leaves | `/staff` |
-| **Staff (Employee)** | 3 | Field technician / general employee; clocks in/out, applies for leaves | `/staff` |
-| **HR Executive** | 4 | Human resources management; manages quotas, holidays, road tax, and approvals | `/admin` & `/staff` |
+| **Director / Super Admin** | 1 | Executive leadership & master system administration; reviews managers' leaves and shifts; manages work sites, users, and public holiday sync | `/admin` |
+| **Operations Manager** | 2 | Field team supervisor; manages assigned direct subordinates; reviews shifts and leaves; monitors team trends | `/staff` |
+| **Field Staff (Employee)** | 3 | Field engineer / technician; clocks in/out with GPS, submits leave & MC attachments, logs vehicle mileage | `/staff` |
+| **HR Executive** | 4 | Human resources operations; manages leave quotas, fleet road tax compliance, and generates monthly payroll timesheets | `/staff` |
 
 ### 3.1 Roles & Permissions Matrix
 
-| Feature | Director (0) | Admin (1) | Manager (2) | Staff (3) | HR Executive (4) |
-|---|---|---|---|---|---|
-| Clock In / Out (Hero Card) | ✓ | – | ✓ | ✓ | ✓ |
-| View Own Attendance & Leaves | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Approve Subordinate Clock-Ins | ✓ (managers) | ✓ (global) | ✓ (subordinates) | – | ✓ (global) |
-| Approve Subordinate Leaves | ✓ (managers) | ✓ (global) | ✓ (subordinates) | – | ✓ (global) |
-| Manage Work Sites | ✓ | ✓ | View only | – | View only |
-| Manage Public Holidays & Sync | ✓ | ✓ | View only | View only | ✓ |
-| Manage Vehicles & Road Tax | ✓ | ✓ | ✓ | View only | ✓ |
-| Log Vehicle Mileage | ✓ | – | ✓ | ✓ | ✓ |
-| Export Attendance CSV | ✓ | ✓ | ✓ | – | ✓ |
-| In-App Notification Bell | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Feature | Director / Super Admin (1) | Operations Manager (2) | Field Staff (3) | HR Executive (4) |
+|---|---|---|---|---|
+| Clock In / Out (Hero Card) | ✓ | ✓ | ✓ | ✓ |
+| View Own Attendance & Leaves | ✓ | ✓ | ✓ | ✓ |
+| Approve Subordinate Clock-Ins | ✓ (Global / Managers) | ✓ (Assigned subordinates) | – | ✓ (Field staff) |
+| Approve Subordinate Leaves | ✓ (Global / Managers) | ✓ (Assigned subordinates) | – | ✓ (Global) |
+| Manage Work Sites | ✓ | View only | – | View only |
+| Manage Public Holidays & Sync | ✓ | View only | View only | ✓ |
+| Manage Vehicles & Road Tax | ✓ | ✓ | View only | ✓ |
+| Log Vehicle Mileage | ✓ | ✓ | ✓ | ✓ |
+| Export Attendance CSV | ✓ | ✓ | – | ✓ |
+| In-App Notification Bell | ✓ | ✓ | ✓ | ✓ |
+| View Medical Certificates (PDPA) | ✓ | ✓ (Subordinates) | ✓ (Own only) | ✓ |
+| Monthly Timesheets & Payroll Hub | ✓ | ✓ (Subordinates) | ✓ (Own slip) | ✓ (Company-wide) |
 
 ---
 
@@ -117,7 +118,7 @@ Tap and Track is a unified workforce management application accessible via moder
 
 ### 4.1 Authentication & Hierarchical RBAC
 - **FR-01**: Authenticate users via unique phone number and password.
-- **FR-02**: Enforce 5 system roles: Director (0), Admin (1), Manager (2), Staff (3), HR Executive (4).
+- **FR-02**: Enforce 4 canonical system roles: Director / Super Admin (1), Operations Manager (2), Field Staff (3), and HR Executive (4).
 - **FR-03**: Support explicit reporting hierarchy via `manager_id` foreign key on the `users` table.
 - **FR-04**: Direct managers shall only access and approve records belonging to their assigned subordinates. Peer-manager approvals and self-approvals shall be rejected server-side.
 
