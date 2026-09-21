@@ -172,7 +172,8 @@ class StaffLeaveRequestResource extends Resource
                     ->schema([
                         Forms\Components\FileUpload::make('attachment_path')
                             ->label('Medical Certificate / Evidence')
-                            ->disk('public')
+                            ->disk('local')
+                            ->visibility('private')
                             ->directory('leave-attachments')
                             ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])
                             ->maxSize(5120)

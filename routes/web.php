@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\AttendanceExportController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\LeaveAttachmentController;
 use App\Http\Controllers\MonthlyReportController;
 
 // --- UNIFIED LOGIN ---
@@ -50,6 +51,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/attendance/monthly-slip/{user}', [MonthlyReportController::class, 'individualSlip'])->name('attendance.monthly.slip');
     Route::get('/attendance/monthly-bundle', [MonthlyReportController::class, 'payrollBundle'])->name('attendance.monthly.bundle');
     Route::get('/attendance/monthly-summary-csv', [MonthlyReportController::class, 'exportSummaryCsv'])->name('attendance.monthly.csv');
+
+    // Secure Leave & Medical Certificate Attachments (PDPA Protected)
+    Route::get('/leaves/{leave}/attachment', [LeaveAttachmentController::class, 'show'])->name('leaves.attachment');
 
 });
 

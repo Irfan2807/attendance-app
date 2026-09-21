@@ -113,7 +113,7 @@ class LeaveRequestModelTest extends TestCase
         ]);
 
         $this->assertNotNull($leaveWithAttachment->attachment_url);
-        $this->assertStringContainsString('leave-attachments/doctor_mc.pdf', $leaveWithAttachment->attachment_url);
+        $this->assertEquals(route('leaves.attachment', $leaveWithAttachment), $leaveWithAttachment->attachment_url);
 
         $leaveWithoutAttachment = LeaveRequest::create([
             'user_id' => $user->id,

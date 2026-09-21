@@ -88,6 +88,7 @@ The system features a **Single Unified Sign-In Link (`/login`)** for all personn
 - **Fleet Compliance Scanner (`fleet:check-alerts`)** – Scheduled daily at 08:00 AM to scan vehicles for road tax expiring within 14 days and upcoming/overdue maintenance.
 - **Holiday Synchronization (`holidays:sync`)** – Fetches and syncs nationwide and state-level holidays from the Malaysia Public Holidays API.
 - **Hierarchical Approval Integrity** – Self-approvals and peer-manager approvals are blocked; supervisors only approve assigned subordinates.
+- **PDPA Privacy & Secure MC Storage** – Medical certificates (MCs) are saved to private storage (`storage/app/private`) and streamed through an authenticated RBAC gateway (`/leaves/{id}/attachment`). Unauthenticated scraping and unauthorized peer downloads are strictly prohibited under Malaysia's Personal Data Protection Act (PDPA 2010).
 
 ---
 

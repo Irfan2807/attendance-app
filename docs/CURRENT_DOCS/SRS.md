@@ -132,6 +132,7 @@ Tap and Track is a unified workforce management application accessible via moder
 ### 4.3 Leave Management & Quota Deductions
 - **FR-11**: Provide employee leave application supporting Annual Leave, Medical Leave (MC), and Hospitalization Leave.
 - **FR-12**: Require medical certificate (MC) attachments for Medical and Hospitalization applications.
+- **FR-12a**: Restrict medical certificate (MC) and leave attachment access via an authenticated streaming endpoint (`/leaves/{leave}/attachment`) adhering to Malaysia Personal Data Protection Act (PDPA) 2010. Files are kept on private storage (`storage/app/private`), accessible exclusively by the applicant, direct reporting supervisor, HR executives, and directors. Direct public URL access to file paths is strictly blocked.
 - **FR-13**: Maintain `leave_quotas` per user per year, tracking allocated, used, and remaining balances.
 - **FR-14**: Automatically calculate working days between start and end dates, strictly excluding weekend rest days and recognized Malaysian public holidays.
 - **FR-15**: Prevent submission if the requested working days exceed the employee's remaining quota balance.
@@ -176,6 +177,7 @@ Tap and Track is a unified workforce management application accessible via moder
 - **NFR-04**: Passwords shall be hashed using bcrypt.
 - **NFR-05**: All forms shall be protected by CSRF tokens.
 - **NFR-06**: Concurrency write locks (`lockForUpdate()`) and transactions shall prevent duplicate clock-in race conditions.
+- **NFR-09**: Medical certificate (MC) files and private documents shall never reside in public web directories. File transfers shall be authenticated, streamed with strict role-based authorization (RBAC), and protected from guessing or scraping attacks.
 
 ### 5.3 Usability & Design Consistency
 - **NFR-07**: Mobile-first responsive layouts with zero unstyled wireframe collapses.

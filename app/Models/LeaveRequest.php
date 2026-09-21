@@ -70,11 +70,11 @@ class LeaveRequest extends Model
 
     public function getAttachmentUrlAttribute(): ?string
     {
-        if (!$this->attachment_path) {
+        if (! $this->attachment_path) {
             return null;
         }
 
-        return Storage::disk('public')->url($this->attachment_path);
+        return route('leaves.attachment', $this);
     }
 
     public function scopePending(Builder $query): Builder

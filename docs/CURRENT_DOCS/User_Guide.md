@@ -125,6 +125,7 @@ Supervisors see an executive 3-card metric strip at the top of their dashboard:
 1. Click **Leave & MC Approvals** in the sidebar.
 2. Review the leave application details: applicant name, leave type, working days deducted, and dates.
 3. For medical leaves, click the **Attachment** link to inspect the uploaded doctor's Medical Certificate (MC).
+   > **PDPA Privacy Protection**: All uploaded medical certificates are stored on a private disk (`storage/app/private`) and streamed through a secure RBAC gateway (`/leaves/{id}/attachment`). Unauthenticated users or unassigned peers cannot download or view employee medical data. Only the applicant, their assigned reporting supervisor, HR executives, and directors are authorized to view MCs.
 4. Click **Approve** or **Reject**. If rejected, provide an explanation note.
 
 ### 4.4 Team Attendance & Overtime Trends Chart

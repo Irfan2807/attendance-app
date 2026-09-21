@@ -119,7 +119,9 @@ class LeaveRequestResource extends Resource
                     ->schema([
                         Forms\Components\FileUpload::make('attachment_path')
                             ->label('MC / Proof')
-                            ->disk('public')
+                            ->disk('local')
+                            ->visibility('private')
+                            ->directory('leave-attachments')
                             ->disabled()
                             ->openable()
                             ->downloadable()
