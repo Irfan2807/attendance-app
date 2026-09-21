@@ -42,24 +42,26 @@ A modern employee attendance, leave management, and workforce operations trackin
 
 ## User Roles & Access
 
-| Role | Name | Panel | Capabilities |
-|---|---|---|---|
-| **0** | **Director** | `/admin` & `/staff` | Executive company oversight; approves managers' leaves and clock-ins |
-| **1** | **Admin** | `/admin` | System administration; manages all users, sites, holidays, and global records |
-| **2** | **Manager** | `/staff` | Team supervisor; manages assigned subordinates, reviews shift/leave requests |
-| **3** | **Staff** | `/staff` | Field technician / employee; clocks in/out, applies for leaves, views quotas |
-| **4** | **HR Executive** | `/admin` & `/staff` | Human resources management; manages quotas, holidays, vehicle road taxes, approvals |
+| Role ID | Title | Primary Portal | Key Capabilities |
+|:---:|---|---|---|
+| **1** | **Director / Super Admin** | `/admin` *(Auto-routed)* | Executive company oversight, system parameters, work site geofence setup, holiday API sync, global record management, and review of manager-level leaves. |
+| **2** | **Operations Manager** | `/staff` *(Auto-routed)* | Field team supervision; reviews subordinate shift requests, approves leave applications, and monitors team attendance and overtime trends. |
+| **3** | **Field Staff / Engineer** | `/staff` *(Auto-routed)* | Single-tap GPS clock in/out, client site check-ins, leave balance tracking, and personal monthly timesheet reviews. |
+| **4** | **HR Executive** | `/staff` *(Auto-routed)* | Human resources operations; manages company quotas, vehicle compliance & road taxes, reviews leave applications, and generates monthly payroll timesheets. |
 
 ---
 
-## Access Points
+## Access Points & Authentication Flow
 
-| Portal | URL | Primary Users |
+The system features a **Single Unified Sign-In Link (`/login`)** for all personnel. Users do not navigate to separate login portals; the system automatically authenticates their mobile phone number and routes them to their authorized environment:
+
+| Access Point | URL | Primary Audience & Function |
 |---|---|---|
-| **Staff Portal** | `/staff` | Staff, Managers, Directors, HR Executives |
-| **Admin Panel** | `/admin` | Administrators, Directors, HR Executives |
-| **Monthly Payroll Hub** | `/attendance/monthly-report` | HR Executives, Operations Managers, Administrators |
-| **Public Site** | `/` | Company landing page, services, and public contact |
+| 🔐 **Unified Portal Sign In** | `/login` | **Single sign-in URL for all users** (Staff, Managers, HR, and Directors). Auto-routes to `/staff` or `/admin` based on role upon authentication. Unauthenticated requests to `/staff` or `/admin` are automatically redirected here. |
+| 🌐 **Public Website** | `/` | Corporate landing page, services showcase, engineering portfolio, and contact enquiry form with topbar link to **Portal Login**. |
+| 🟢 **Staff Operations Portal** | `/staff` | Daily operational workspace for **Staff (3)**, **Managers (2)**, and **HR Executives (4)**: Hero shift clock-in/out card, geofence verification, leave quotas, team approval queues, and fleet mileage. |
+| 🟠 **Executive Admin Panel** | `/admin` | System management workspace for **Directors / Super Admins (1)**: System configurations, work site coordinates, public holiday API sync, and raw database records. |
+| 📄 **Monthly Payroll Hub** | `/attendance/monthly-report` | End-of-month attendance auditing hub for **HR Executives**, **Managers**, and **Directors**: A4 printable timesheets with signature blocks, company payroll bundles, and CSV exports. |
 
 ---
 

@@ -273,7 +273,7 @@ Tap and Track is a unified workforce management application accessible via moder
 - **Flow**: User clicks **Clock Out**. Active shift is closed with current timestamp, and status updates to `completed` (if pre-verified) or `temporary` (if pending manager review).
 
 ### UC-03: Subordinate Clock-In Approval (Hierarchical)
-- **Actor**: Manager (Role 2), Director (Role 0), HR Executive (Role 4)
+- **Actor**: Manager (Role 2), Director / Super Admin (Role 1), HR Executive (Role 4)
 - **Flow**: Supervisor reviews pending shift check-ins of assigned subordinates. Self-approval and peer-manager approvals are blocked. Approver confirms or rejects with notes. Staff receives an in-app notification.
 
 ### UC-04: Leave Application with Smart Deduction

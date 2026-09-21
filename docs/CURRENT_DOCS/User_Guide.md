@@ -29,11 +29,10 @@ Tap and Track is an enterprise employee attendance, leave management, and workfo
 
 ### 1.1 Purpose of this Guide
 This guide provides complete walkthroughs for all user roles:
-- **Staff (Role 3)** – Field technicians and employees recording shifts and applying for leaves.
-- **Managers (Role 2)** – Supervisors managing assigned subordinates, reviewing clock-ins, approving leaves, and monitoring team overtime.
-- **HR Executives (Role 4)** – Human resources managers overseeing quotas, fleet compliance, and company-wide leave approvals.
-- **Administrators (Role 1)** – Technical administrators managing site configurations, system parameters, and raw logs.
-- **Directors (Role 0)** – Executive leadership with company-wide visibility and authority to review manager-level attendance and leaves.
+- **Field Staff (Role 3)** – Field technicians and employees recording shifts and applying for leaves.
+- **Operations Managers (Role 2)** – Supervisors managing assigned subordinates, reviewing clock-ins, approving leaves, and monitoring team overtime.
+- **HR Executives (Role 4)** – Human resources managers overseeing quotas, fleet compliance, company-wide leave approvals, and monthly timesheets.
+- **Directors / Super Admins (Role 1)** – Executive leadership and system administrators managing site geofences, holiday sync, and reviewing manager-level attendance and leaves.
 
 ---
 
@@ -42,22 +41,28 @@ This guide provides complete walkthroughs for all user roles:
 ### 2.1 System Requirements
 - A modern web browser: Chrome, Firefox, Microsoft Edge, or Safari.
 - Network connection (cellular or Wi-Fi).
-- Phone number and password credentials.
+- Registered mobile phone number (`01XXXXXXXX`) and password credentials.
 - Browser location access enabled (for automated GPS attendance verification).
 
-### 2.2 Access Portals
+### 2.2 Access Portals & Unified Sign-In
+All company personnel sign in through a single, unified link:
 
-| Portal | URL | Authorized Roles |
+| Portal | URL | Access Description |
 |---|---|---|
-| **Staff Portal** | `/staff` | Staff (3), Managers (2), HR Executives (4), Directors (0) |
-| **Admin Panel** | `/admin` | Administrators (1), HR Executives (4), Directors (0) |
-| **Company Landing Page** | `/` | All users (public-facing) |
+| **Unified Portal Sign In** | `/login` | **Single sign-in URL for all users**. The system automatically verifies your phone number and routes you to your authorized portal (`/staff` or `/admin`). |
+| **Staff Operations Portal** | `/staff` | Daily operational workspace for Staff (3), Managers (2), and HR Executives (4). |
+| **Executive Admin Panel** | `/admin` | System administration workspace for Directors / Super Admins (1). |
+| **Monthly Payroll Hub** | `/attendance/monthly-report` | End-of-month timesheet auditing for HR Executives, Managers, and Directors. |
+| **Company Website** | `/` | Public-facing company landing page with a direct link to **Portal Login**. |
 
 ### 2.3 Logging In
-1. Navigate to `/staff` or `/admin`.
-2. Enter your registered **Phone Number** (e.g., `0123456789`).
+1. Navigate to **`/login`** (or click **Portal Login** on the company homepage).
+2. Enter your registered Malaysian **Phone Number** (e.g., `0123456789`).
 3. Enter your **Password**.
-4. Click **Sign In**.
+4. Click **Sign In to Portal**.
+5. The system automatically routes you:
+   - **Directors / Super Admins (Role 1)** &rarr; Directed to the Executive Admin Panel (`/admin`).
+   - **Staff, Managers, and HR (Roles 2, 3, 4)** &rarr; Directed to the Staff Operations Portal (`/staff`).
 
 ---
 
