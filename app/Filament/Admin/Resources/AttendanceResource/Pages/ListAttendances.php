@@ -13,6 +13,13 @@ class ListAttendances extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
+            Actions\Action::make('monthly_reports')
+                ->label('Monthly Timesheets / Payroll')
+                ->icon('heroicon-o-document-chart-bar')
+                ->color('warning')
+                ->url(route('attendance.monthly.index'))
+                ->openUrlInNewTab(),
+
             Actions\Action::make('export')
                 ->label('Export CSV')
                 ->url(route('attendance.export'))

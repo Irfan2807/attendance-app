@@ -338,6 +338,12 @@ class StaffUserResource extends Resource
                 //
             ])
             ->actions([
+                Tables\Actions\Action::make('monthly_slip')
+                    ->label('Timesheet')
+                    ->icon('heroicon-o-document-text')
+                    ->color('warning')
+                    ->url(fn (User $record) => route('attendance.monthly.slip', ['user' => $record->id]))
+                    ->openUrlInNewTab(),
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),

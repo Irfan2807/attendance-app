@@ -156,6 +156,13 @@ Tap and Track is a unified workforce management application accessible via moder
 - **FR-26**: Calculate service status: OK, Due Soon (≤ 500 km remaining), or Overdue.
 - **FR-27**: Provide artisan command `fleet:check-alerts` scheduled daily at 08:00 AM to dispatch compliance notices.
 
+### 4.8 Monthly Timesheets & Payroll Reports
+- **FR-28**: Aggregate monthly working hours, regular hours (capped at 8-hour workday), overtime hours, and approved leave days for active employees.
+- **FR-29**: Provide an on-demand Monthly Payroll & Timesheet Hub (`/attendance/monthly-report`) with month/year selector, department filters, and company-wide KPI metrics.
+- **FR-30**: Generate an audit-ready individual A4 Monthly Attendance Slip (`/attendance/monthly-slip/{user}`) featuring daily logs, overtime calculations, and formal signature blocks for employee and HR certification.
+- **FR-31**: Generate a multi-page compiled All-Staff Payroll Bundle (`/attendance/monthly-bundle`) formatted with page-breaks for 1-click printing or PDF export.
+- **FR-32**: Stream a payroll-ready summary CSV (`/attendance/monthly-summary-csv`) with formula injection sanitization (CWE-1236).
+
 ---
 
 ## 5. Non-Functional Requirements

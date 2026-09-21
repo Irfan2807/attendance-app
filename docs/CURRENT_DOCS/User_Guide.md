@@ -128,15 +128,26 @@ The interactive trends widget below your shift card visualizes:
 - **Overtime Hours** (blue line curve) tracking team extra hours.
 - Use the dropdown in the top-right corner to switch between Weekly, Bi-weekly, and Monthly scopes.
 
+### 4.5 Monthly Timesheets & Payroll Reports (HR & Managers)
+Managers and HR Executives can generate end-of-month attendance reports for payroll calculation:
+1. Navigate to **Management** &rarr; **Staff Attendance Overview** (or click **Monthly Timesheets / Payroll** in the top header).
+2. Direct URL: `/attendance/monthly-report`.
+3. **Filter Period**: Select the **Month** and **Year** (e.g. *September 2026*).
+4. **Inspect KPI Strip**: View total active staff, total present days, regular hours, overtime hours, approved leave days, and late starts.
+5. **Print Individual Timesheet Slip**: Click **Timesheet Slip** next to any employee to view and print their official A4 attendance card with signature boxes.
+6. **Download All Staff (Payroll Bundle)**: Click **Print All Staff (Payroll Bundle)** to generate a multi-page compiled PDF document of all active staff timesheets for payroll submission.
+7. **Export Summary CSV**: Click **Export Summary CSV** to download a spreadsheet for direct import into payroll software.
+
 ---
 
 ## 5. Admin Panel – Executive & HR Administration
 
 Administrators, HR Executives, and Directors access `/admin` for enterprise configuration:
-- **Staff Management**: Create users with explicit reporting lines (`manager_id`), assign roles, and toggle `is_active` status.
+- **Staff Management**: Create users with explicit reporting lines (`manager_id`), assign roles, toggle `is_active` status, and access individual timesheet slips.
 - **Work Sites**: Configure static office IP addresses, GPS coordinates, and allowed geofence radii.
 - **Public Holidays**: View national and state holidays and trigger live API syncs via the **Sync Holidays from API** button.
 - **Company Attendance & Leaves**: View global company records with full search, date filters, CSV export, and printable audit sheets.
+- **Monthly Timesheets / Payroll**: Header action linking to the company-wide monthly payroll hub.
 
 ---
 

@@ -303,6 +303,12 @@ class UserResource extends Resource
                     ->label('Active Status'),
             ])
             ->actions([
+                Tables\Actions\Action::make('monthly_slip')
+                    ->label('Timesheet')
+                    ->icon('heroicon-o-document-text')
+                    ->color('warning')
+                    ->url(fn (User $record) => route('attendance.monthly.slip', ['user' => $record->id]))
+                    ->openUrlInNewTab(),
                 Tables\Actions\ViewAction::make(),
 
                 // 5. Edit Permission: Managers can only edit Staff

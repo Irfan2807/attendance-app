@@ -21,6 +21,7 @@ A modern employee attendance, leave management, and workforce operations trackin
 | 🚗 **Fleet & Road Tax Alerts** | Mileage logs, service due tracking, and automated 30-day/14-day road tax compliance scanners (`fleet:check-alerts`) |
 | 👥 **Hierarchical Approval Governance** | Subordinate-scoped approvals: managers approve direct staff, Directors and HR Executives approve managers |
 | 📊 **Operational Analytics** | Interactive team attendance and overtime trend charts, monthly aggregate hours, and live approval queues |
+| 📄 **Monthly PDF Timesheets & Payroll** | Audit-ready A4 timesheet slips with signature blocks, company-wide payroll bundle, and CSV export for HR |
 | 👤 **Staff Portal & Admin Panel** | Dedicated Filament portals for staff self-service, manager supervision, and executive administration |
 | ⚡ **Performance Optimized** | Lazy-loaded widgets, database indexing, cache layers, and chunked CSV exports |
 
@@ -57,6 +58,7 @@ A modern employee attendance, leave management, and workforce operations trackin
 |---|---|---|
 | **Staff Portal** | `/staff` | Staff, Managers, Directors, HR Executives |
 | **Admin Panel** | `/admin` | Administrators, Directors, HR Executives |
+| **Monthly Payroll Hub** | `/attendance/monthly-report` | HR Executives, Operations Managers, Administrators |
 | **Public Site** | `/` | Company landing page, services, and public contact |
 
 ---

@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\AttendanceExportController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\MonthlyReportController;
 
 // --- UNIFIED LOGIN ---
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
@@ -43,6 +44,12 @@ Route::middleware(['auth'])->group(function () {
     // Attendance endpoints
     Route::get('/attendance/export', [AttendanceExportController::class, 'exportCsv'])->name('attendance.export');
     Route::get('/attendance/print', [AttendanceExportController::class, 'printView'])->name('attendance.print');
+
+    // Monthly Timesheet & Payroll Reports
+    Route::get('/attendance/monthly-report', [MonthlyReportController::class, 'index'])->name('attendance.monthly.index');
+    Route::get('/attendance/monthly-slip/{user}', [MonthlyReportController::class, 'individualSlip'])->name('attendance.monthly.slip');
+    Route::get('/attendance/monthly-bundle', [MonthlyReportController::class, 'payrollBundle'])->name('attendance.monthly.bundle');
+    Route::get('/attendance/monthly-summary-csv', [MonthlyReportController::class, 'exportSummaryCsv'])->name('attendance.monthly.csv');
 
 });
 
