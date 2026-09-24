@@ -212,10 +212,22 @@ Navigate to **Fleet → Vehicles** to inspect company fleet vehicles:
 - **Road Tax Expiry**: Shows expiration dates with color alerts for road taxes expiring within 30 days or already expired.
 
 ### 8.2 Logging Trip Mileage
-1. Open **Fleet → Mileage Logs**.
-2. Click **New Mileage Log**.
-3. Select the vehicle and record the odometer reading at the start/end of your journey.
-4. Save the log to update the vehicle's telemetry.
+Company vehicles are tracked per journey to record driver accountability, destinations, purpose, and distances traveled. When returning from a trip, employees log their completed journey:
+
+1. Open **Fleet → Mileage Logs** in the Staff Operations or Admin portal.
+2. Click **New Mileage Log** (or **+ Record Vehicle Trip**).
+3. **Select Vehicle**:
+   - Choose the vehicle driven from the dropdown list.
+   - The **Starting Odometer (KM)** automatically pre-fills with the vehicle's latest odometer reading.
+4. **Select Destination**:
+   - Choose between **Registered Project Site** (select from active sites/depots) or **Client / Ad-hoc Location** (enter address or project description, e.g., *"Petronas Gas Terminal, Kerteh"*).
+5. **Trip Purpose**:
+   - Select the operational purpose (e.g., *Site Survey & Inspection*, *Material & Tool Transport*, *Routine Vehicle Servicing*, *Emergency Maintenance*, *CME & Telecom Rigging*) or input a custom purpose.
+6. **Enter Ending Odometer (KM)**:
+   - Input the vehicle's odometer reading upon return.
+   - The form immediately calculates and displays the live **Distance Traveled (KM)** (`Ending KM - Starting KM`).
+7. **Submit the Trip**:
+   - Click **Create** to save. The vehicle's telemetry updates immediately, and maintenance service countdowns are re-evaluated in real time.
 
 ---
 

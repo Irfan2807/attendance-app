@@ -4,6 +4,7 @@ namespace App\Filament\Admin\Resources;
 
 use App\Filament\Admin\Resources\MileageLogResource\Pages;
 use App\Models\MileageLog;
+use App\Models\Site;
 use App\Models\Vehicle;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -18,13 +19,14 @@ class MileageLogResource extends Resource
     protected static ?string $model = MileageLog::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-chart-bar';
-    protected static ?string $navigationLabel = 'Mileage Logs';
+    protected static ?string $navigationLabel = 'Vehicle Trip Logs';
     protected static ?string $navigationGroup = 'Fleet';
     protected static ?int $navigationSort = 2;
+    protected static ?string $modelLabel = 'Trip Log';
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->with(['vehicle', 'user']);
+        return parent::getEloquentQuery()->with(['vehicle', 'user', 'site']);
     }
 
     public static function canViewAny(): bool
@@ -51,58 +53,122 @@ class MileageLogResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Mileage Entry')
+                Forms\Components\Section::make('Vehicle & Journey Details')
+                    ->description('Log trip details, destination, driver, and odometer readings for company fleet oversight.')
                     ->schema([
                         Forms\Components\Select::make('vehicle_id')
-                            ->label('Vehicle')
+                            ->label('Company Vehicle')
                             ->options(Vehicle::where('is_active', true)->pluck('name', 'id'))
                             ->searchable()
                             ->required()
                             ->reactive()
-                            ->afterStateHydrated(function ($state, Forms\Set $set) {
-                                if ($state) {
+                            ->afterStateHydrated(function ($state, Forms\Set $set, Forms\Get $get) {
+                                if ($state && blank($get('start_mileage'))) {
                                     $vehicle = Vehicle::find($state);
-                                    $set('current_vehicle_mileage', $vehicle?->current_mileage ?? 0);
+                                    $set('start_mileage', $vehicle?->current_mileage ?? 0);
                                 }
                             })
                             ->afterStateUpdated(function ($state, Forms\Set $set) {
                                 if ($state) {
                                     $vehicle = Vehicle::find($state);
-                                    $set('current_vehicle_mileage', $vehicle?->current_mileage ?? 0);
+                                    $set('start_mileage', $vehicle?->current_mileage ?? 0);
                                 }
                             })
-                            ->helperText(fn ($get) => $get('current_vehicle_mileage') 
-                                ? 'Current mileage: ' . number_format((float) $get('current_vehicle_mileage')) . ' KM' 
-                                : null),
-
-                        Forms\Components\Hidden::make('current_vehicle_mileage'),
+                            ->helperText('Select the company vehicle used for this trip.'),
 
                         Forms\Components\Select::make('user_id')
-                            ->label('Staff Member')
+                            ->label('Driver / Staff Member')
                             ->relationship('user', 'name')
                             ->searchable()
                             ->required()
-                            ->default(Auth::id()),
+                            ->default(Auth::id())
+                            ->helperText('Employee who drove the vehicle.'),
 
-                        Forms\Components\TextInput::make('mileage_reading')
-                            ->label('Odometer Reading (KM)')
+                        Forms\Components\Select::make('destination_type')
+                            ->label('Destination Type')
+                            ->options([
+                                'registered_site' => 'Registered Company Work Site',
+                                'custom_location' => 'Client Project / Other Location',
+                            ])
+                            ->default('registered_site')
+                            ->reactive()
+                            ->dehydrated(false),
+
+                        Forms\Components\Select::make('site_id')
+                            ->label('Work Site Destination')
+                            ->options(Site::where('is_active', true)->pluck('name', 'id'))
+                            ->searchable()
+                            ->visible(fn (Forms\Get $get) => $get('destination_type') !== 'custom_location')
+                            ->reactive()
+                            ->afterStateUpdated(function ($state, Forms\Set $set) {
+                                if ($state) {
+                                    $site = Site::find($state);
+                                    $set('destination', $site?->name);
+                                }
+                            })
+                            ->helperText('Select the assigned site visited.'),
+
+                        Forms\Components\TextInput::make('destination')
+                            ->label('Client Site / Location Name')
+                            ->placeholder('e.g. Petronas Gas Processing Plant, Kerteh')
+                            ->visible(fn (Forms\Get $get) => $get('destination_type') === 'custom_location' || blank($get('site_id')))
+                            ->required(fn (Forms\Get $get) => $get('destination_type') === 'custom_location')
+                            ->maxLength(255),
+
+                        Forms\Components\Select::make('purpose')
+                            ->label('Trip Purpose')
+                            ->options([
+                                'Site Survey & Inspection' => 'Site Survey & Inspection',
+                                'Emergency Maintenance' => 'Emergency Maintenance',
+                                'CME & Telecom Rigging' => 'CME & Telecom Rigging',
+                                'Fiber Splicing & Rollout' => 'Fiber Splicing & Rollout',
+                                'Material & Tool Transport' => 'Material & Tool Transport',
+                                'Routine Vehicle Servicing' => 'Routine Vehicle Servicing',
+                                'Client Meeting & Briefing' => 'Client Meeting & Briefing',
+                                'Other' => 'Other / General Transit',
+                            ])
                             ->required()
-                            ->numeric()
-                            ->minValue(fn ($get) => (int) ($get('current_vehicle_mileage') ?: 0))
-                            ->suffix('KM')
-                            ->helperText('Enter the current odometer reading from the vehicle'),
+                            ->searchable()
+                            ->default('Site Survey & Inspection'),
 
                         Forms\Components\DateTimePicker::make('recorded_at')
-                            ->label('Date & Time')
+                            ->label('Trip Date & Time')
                             ->required()
                             ->default(now())
                             ->maxDate(now()),
+                    ])->columns(2),
+
+                Forms\Components\Section::make('Mileage & Odometer Readings')
+                    ->schema([
+                        Forms\Components\TextInput::make('start_mileage')
+                            ->label('Starting Odometer (KM)')
+                            ->required()
+                            ->numeric()
+                            ->suffix('KM')
+                            ->reactive()
+                            ->helperText('Odometer before departure (prefilled from vehicle record).'),
+
+                        Forms\Components\TextInput::make('end_mileage')
+                            ->label('Ending Odometer (KM)')
+                            ->required()
+                            ->numeric()
+                            ->suffix('KM')
+                            ->reactive()
+                            ->minValue(fn (Forms\Get $get) => (int) ($get('start_mileage') ?: 0))
+                            ->helperText(function (Forms\Get $get) {
+                                $start = (int) $get('start_mileage');
+                                $end = (int) $get('end_mileage');
+                                if ($end > 0 && $end >= $start) {
+                                    return '✅ Trip distance: ' . number_format($end - $start) . ' KM';
+                                }
+                                return 'Enter current odometer reading after parking.';
+                            }),
 
                         Forms\Components\Textarea::make('notes')
-                            ->label('Notes')
+                            ->label('Trip Notes & Fuel / Toll Remarks')
                             ->maxLength(500)
                             ->columnSpanFull()
-                            ->placeholder('Optional: Trip details, fuel, etc.'),
+                            ->placeholder('Optional: Fuel refill liters, toll expenses, vehicle condition remarks, etc.'),
                     ])->columns(2),
             ]);
     }
@@ -114,31 +180,63 @@ class MileageLogResource extends Resource
                 Tables\Columns\TextColumn::make('vehicle.numberplate')
                     ->label('Vehicle')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->weight('bold'),
 
                 Tables\Columns\TextColumn::make('vehicle.name')
                     ->label('Model')
-                    ->searchable(),
-
-                Tables\Columns\TextColumn::make('mileage_reading')
-                    ->label('Mileage')
-                    ->sortable()
-                    ->formatStateUsing(fn ($state) => number_format((float) $state) . ' KM'),
+                    ->searchable()
+                    ->toggleable(),
 
                 Tables\Columns\TextColumn::make('user.name')
-                    ->label('Logged By')
+                    ->label('Driver')
                     ->searchable()
                     ->sortable(),
 
+                Tables\Columns\TextColumn::make('resolved_destination')
+                    ->label('Destination')
+                    ->searchable(query: fn (Builder $query, string $search) => 
+                        $query->where('destination', 'like', "%{$search}%")
+                            ->orWhereHas('site', fn ($q) => $q->where('name', 'like', "%{$search}%"))
+                    )
+                    ->badge()
+                    ->color('info'),
+
+                Tables\Columns\TextColumn::make('purpose')
+                    ->label('Purpose')
+                    ->searchable()
+                    ->badge()
+                    ->color('gray'),
+
+                Tables\Columns\TextColumn::make('start_mileage')
+                    ->label('Start KM')
+                    ->numeric()
+                    ->formatStateUsing(fn ($state) => $state !== null ? number_format((float) $state) . ' KM' : '—')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\TextColumn::make('end_mileage')
+                    ->label('End KM')
+                    ->numeric()
+                    ->getStateUsing(fn ($record) => $record->end_mileage ?? $record->mileage_reading)
+                    ->formatStateUsing(fn ($state) => number_format((float) $state) . ' KM')
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('distance_km')
+                    ->label('Distance')
+                    ->badge()
+                    ->color('success')
+                    ->getStateUsing(fn ($record) => $record->distance_km !== null ? '+' . number_format((float) $record->distance_km) . ' KM' : '—')
+                    ->sortable(),
+
                 Tables\Columns\TextColumn::make('recorded_at')
-                    ->label('Date')
+                    ->label('Trip Date')
                     ->dateTime('d/m/Y H:i')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('notes')
                     ->label('Notes')
-                    ->limit(30)
-                    ->toggleable(),
+                    ->limit(25)
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('vehicle_id')
@@ -173,4 +271,3 @@ class MileageLogResource extends Resource
         ];
     }
 }
-

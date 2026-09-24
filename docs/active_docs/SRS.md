@@ -166,6 +166,7 @@ Tap and Track is a unified workforce management application accessible via moder
 - **FR-25**: Track vehicles with registration plate, current mileage, next service threshold, and road tax expiry date.
 - **FR-26**: Calculate service status: OK, Due Soon (≤ 500 km remaining), or Overdue.
 - **FR-27**: Provide artisan command `fleet:check-alerts` scheduled daily at 08:00 AM to dispatch compliance notices.
+- **FR-27a**: Trip-Based Mileage & Journey Logging: When an employee uses a company vehicle, they submit a trip return log recording the driver (`user_id`), vehicle (`vehicle_id`), destination (`site_id` FK to `sites` table for registered project sites, or custom `destination` text for client/ad-hoc locations), trip purpose (`purpose`), starting odometer (`start_mileage` - prefilled from vehicle's latest reading), ending odometer (`end_mileage`), and distance traveled (`distance_km` calculated dynamically as `end_mileage - start_mileage`). Updating this log automatically increments the vehicle's `current_mileage` and triggers service interval recalculations.
 
 ### 4.8 Monthly Timesheets & Payroll Reports
 - **FR-28**: Aggregate monthly working hours, regular hours (capped at 8-hour workday), overtime hours, and approved leave days for active employees.
@@ -224,6 +225,7 @@ Tap and Track is a unified workforce management application accessible via moder
 - `User` has many `Attendances`, `LeaveRequests`, `LeaveQuotas`, `AttendanceInfractions`, `MileageLogs`.
 - `User` (Manager) has many subordinate `Users` via `manager_id`.
 - `Vehicle` has many `MileageLogs`.
+- `MileageLog` belongs to `Vehicle`, belongs to `User` (driver), and optionally belongs to `Site` (registered project destination).
 - `Attendance` belongs to `User` and optional `Site`.
 
 ### 7.2 Core Tables
@@ -250,7 +252,7 @@ Tap and Track is a unified workforce management application accessible via moder
 `id`, `name`, `numberplate`, `current_mileage`, `next_service_mileage`, `road_tax_expiry_date`, `is_active`, `notes`, timestamps.
 
 **Table: `mileage_logs`**
-`id`, `vehicle_id` (FK), `user_id` (FK), `mileage_reading`, `recorded_at`, `notes`, timestamps.
+`id`, `vehicle_id` (FK), `user_id` (FK), `site_id` (FK, nullable), `destination` (string, nullable), `purpose` (string, nullable), `start_mileage` (decimal/integer), `end_mileage` (decimal/integer), `distance_km` (decimal/integer), `mileage_reading` (backward compatibility mirroring `end_mileage`), `recorded_at`, `notes`, timestamps.
 
 **Table: `attendance_infractions`**
 `id`, `user_id` (FK), `attendance_id` (FK), `infraction_type`, `auto_clock_out_time`, `notes`, timestamps.
