@@ -72,16 +72,20 @@ class MileageLogResource extends Resource
                             ->searchable()
                             ->required()
                             ->reactive()
-                            ->afterStateHydrated(function ($state, Forms\Set $set, Forms\Get $get) {
-                                if ($state && blank($get('start_mileage'))) {
+                            ->afterStateHydrated(function ($state, Forms\Set $set, Forms\Get $get, ?MileageLog $record) {
+                                if ($record && $record->start_mileage !== null) {
+                                    $set('start_mileage', $record->start_mileage);
+                                } elseif ($state && blank($get('start_mileage'))) {
                                     $vehicle = Vehicle::find($state);
                                     $set('start_mileage', $vehicle?->current_mileage ?? 0);
                                 }
                             })
-                            ->afterStateUpdated(function ($state, Forms\Set $set) {
+                            ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
                                 if ($state) {
                                     $vehicle = Vehicle::find($state);
-                                    $set('start_mileage', $vehicle?->current_mileage ?? 0);
+                                    if (! $get('override_start_mileage')) {
+                                        $set('start_mileage', $vehicle?->current_mileage ?? 0);
+                                    }
                                 }
                             })
                             ->helperText('Select the company vehicle used for this trip.'),
@@ -144,11 +148,23 @@ class MileageLogResource extends Resource
                     ->schema([
                         Forms\Components\TextInput::make('start_mileage')
                             ->label('Starting Odometer (KM)')
-                            ->required()
                             ->numeric()
                             ->suffix('KM')
                             ->reactive()
-                            ->helperText('Odometer before departure (prefilled from vehicle record).'),
+                            ->disabled(fn (Forms\Get $get) => ! $get('override_start_mileage'))
+                            ->dehydrated()
+                            ->required(fn (Forms\Get $get) => (bool) $get('override_start_mileage'))
+                            ->placeholder(fn (Forms\Get $get) => blank($get('vehicle_id')) ? 'Select vehicle above' : null)
+                            ->helperText(function (Forms\Get $get) {
+                                if (blank($get('vehicle_id'))) {
+                                    return 'Select a company vehicle above to load starting odometer.';
+                                }
+                                if ($get('override_start_mileage')) {
+                                    return '⚠️ Manual override active: Enter the actual odometer at departure.';
+                                }
+                                $val = (int) ($get('start_mileage') ?: 0);
+                                return '🔒 Prefilled from vehicle record (' . number_format($val) . ' KM). Check box below if dashboard differs.';
+                            }),
 
                         Forms\Components\TextInput::make('end_mileage')
                             ->label('Ending Odometer (KM)')
@@ -156,15 +172,40 @@ class MileageLogResource extends Resource
                             ->numeric()
                             ->suffix('KM')
                             ->reactive()
-                            ->minValue(fn (Forms\Get $get) => (int) ($get('start_mileage') ?: 0))
+                            ->minValue(function (Forms\Get $get) {
+                                if ($get('start_mileage') !== null && $get('start_mileage') !== '') {
+                                    return (int) $get('start_mileage');
+                                }
+                                if ($vId = $get('vehicle_id')) {
+                                    $vehicle = Vehicle::find($vId);
+                                    return (int) ($vehicle?->current_mileage ?? 0);
+                                }
+                                return 0;
+                            })
                             ->helperText(function (Forms\Get $get) {
-                                $start = (int) $get('start_mileage');
+                                $start = (int) ($get('start_mileage') ?: ($get('vehicle_id') ? Vehicle::find($get('vehicle_id'))?->current_mileage : 0));
                                 $end = (int) $get('end_mileage');
                                 if ($end > 0 && $end >= $start) {
-                                    return '✅ Trip distance: ' . number_format($end - $start) . ' KM';
+                                    return '✅ Trip distance: +' . number_format($end - $start) . ' KM';
                                 }
                                 return 'Enter current odometer reading after parking.';
                             }),
+
+                        Forms\Components\Checkbox::make('override_start_mileage')
+                            ->label('Adjust starting odometer (if vehicle dashboard differs from system record)')
+                            ->reactive()
+                            ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get, ?MileageLog $record) {
+                                if (! $state) {
+                                    if ($record && $record->start_mileage !== null) {
+                                        $set('start_mileage', $record->start_mileage);
+                                    } elseif ($vId = $get('vehicle_id')) {
+                                        $vehicle = Vehicle::find($vId);
+                                        $set('start_mileage', $vehicle?->current_mileage ?? 0);
+                                    }
+                                }
+                            })
+                            ->dehydrated(false)
+                            ->columnSpanFull(),
 
                         Forms\Components\Textarea::make('notes')
                             ->label('Trip Notes & Fuel / Toll Remarks')

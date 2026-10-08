@@ -21,6 +21,12 @@ class CreateMileageLog extends CreateRecord
             $data['site_id'] = null;
         }
 
+        // Auto-fill start_mileage from vehicle record if not provided or empty
+        if ((!isset($data['start_mileage']) || $data['start_mileage'] === '' || $data['start_mileage'] === null) && !empty($data['vehicle_id'])) {
+            $vehicle = Vehicle::find($data['vehicle_id']);
+            $data['start_mileage'] = $vehicle?->current_mileage ?? 0;
+        }
+
         // Harmonize ending mileage and legacy mileage_reading
         $targetMileage = $data['end_mileage'] ?? $data['mileage_reading'] ?? null;
         if ($targetMileage !== null) {

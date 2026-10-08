@@ -218,14 +218,15 @@ Company vehicles are tracked per journey to record driver accountability, destin
 2. Click **New Mileage Log** (or **+ Record Vehicle Trip**).
 3. **Select Vehicle**:
    - Choose the vehicle driven from the dropdown list.
-   - The **Starting Odometer (KM)** automatically pre-fills with the vehicle's latest odometer reading.
+   - The **Starting Odometer (KM)** automatically pre-fills and locks to the vehicle's latest odometer reading from the system database.
+   - *Manual Override Toggle*: If the vehicle's physical dashboard odometer differs from the system record (for example, if a prior driver forgot to log a quick transit), simply check the **Adjust starting odometer** box to unlock and enter the actual physical odometer at departure.
 4. **Select Destination**:
    - Choose between **Registered Project Site** (select from active sites/depots) or **Client / Ad-hoc Location** (enter address or project description, e.g., *"Petronas Gas Terminal, Kerteh"*).
 5. **Trip Purpose**:
    - Select the operational purpose (e.g., *Site Survey & Inspection*, *Material & Tool Transport*, *Routine Vehicle Servicing*, *Emergency Maintenance*, *CME & Telecom Rigging*) or input a custom purpose.
 6. **Enter Ending Odometer (KM)**:
    - Input the vehicle's odometer reading upon return.
-   - The form immediately calculates and displays the live **Distance Traveled (KM)** (`Ending KM - Starting KM`).
+   - The form immediately calculates and displays the live **Trip Distance** badge (`+XX KM`).
 7. **Submit the Trip**:
    - Click **Create** to save. The vehicle's telemetry updates immediately, and maintenance service countdowns are re-evaluated in real time.
 

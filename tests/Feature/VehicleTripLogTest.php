@@ -165,4 +165,86 @@ class VehicleTripLogTest extends TestCase
         // Next service 50000 - 49620 = 380 km left -> Service Due Soon!
         $this->assertTrue($vehicle->isServiceDueSoon());
     }
+
+    public function test_staff_can_log_trip_with_prefilled_starting_odometer_from_vehicle(): void
+    {
+        $staff = User::factory()->create(['role' => Role::Staff]);
+        $vehicle = Vehicle::create([
+            'numberplate' => 'BND1122',
+            'name' => 'Mitsubishi Triton',
+            'current_mileage' => 75000,
+            'next_service_mileage' => 80000,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($staff);
+        \Filament\Facades\Filament::setCurrentPanel(\Filament\Facades\Filament::getPanel('staff'));
+
+        // Staff does not enter start_mileage manually; it is prefilled/defaulted from vehicle record
+        Livewire::test(CreateMileageLog::class)
+            ->fillForm([
+                'vehicle_id' => $vehicle->id,
+                'destination_type' => 'custom_location',
+                'destination' => 'Depot - Nilai',
+                'purpose' => 'Routine Vehicle Servicing',
+                'end_mileage' => 75150,
+                'recorded_at' => now()->toDateTimeString(),
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $this->assertDatabaseHas('mileage_logs', [
+            'vehicle_id' => $vehicle->id,
+            'user_id' => $staff->id,
+            'start_mileage' => 75000,
+            'end_mileage' => 75150,
+            'distance_km' => 150,
+            'destination' => 'Depot - Nilai',
+        ]);
+
+        $vehicle->refresh();
+        $this->assertEquals(75150, $vehicle->current_mileage);
+    }
+
+    public function test_staff_can_override_starting_odometer_when_checkbox_checked(): void
+    {
+        $staff = User::factory()->create(['role' => Role::Staff]);
+        $vehicle = Vehicle::create([
+            'numberplate' => 'KDD9090',
+            'name' => 'Nissan Navara',
+            'current_mileage' => 20000,
+            'next_service_mileage' => 25000,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($staff);
+        \Filament\Facades\Filament::setCurrentPanel(\Filament\Facades\Filament::getPanel('staff'));
+
+        // Staff notices dashboard says 20050 (someone unlogged 50km) and overrides start_mileage
+        Livewire::test(CreateMileageLog::class)
+            ->fillForm([
+                'vehicle_id' => $vehicle->id,
+                'destination_type' => 'custom_location',
+                'destination' => 'Client Site - Banting',
+                'purpose' => 'Fiber Splicing & Rollout',
+                'override_start_mileage' => true,
+                'start_mileage' => 20050,
+                'end_mileage' => 20120,
+                'recorded_at' => now()->toDateTimeString(),
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $this->assertDatabaseHas('mileage_logs', [
+            'vehicle_id' => $vehicle->id,
+            'user_id' => $staff->id,
+            'start_mileage' => 20050,
+            'end_mileage' => 20120,
+            'distance_km' => 70,
+        ]);
+
+        $vehicle->refresh();
+        $this->assertEquals(20120, $vehicle->current_mileage);
+    }
 }
+

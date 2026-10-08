@@ -40,6 +40,12 @@ class MileageLog extends Model
                 $log->site_id = null;
             }
 
+            // Auto-fill start_mileage from vehicle record if missing
+            if ($log->start_mileage === null && !empty($log->vehicle_id)) {
+                $vehicle = Vehicle::find($log->vehicle_id);
+                $log->start_mileage = $vehicle?->current_mileage ?? 0;
+            }
+
             // Keep mileage_reading and end_mileage in sync for backward compatibility
             if ($log->end_mileage !== null && $log->mileage_reading === null) {
                 $log->mileage_reading = $log->end_mileage;
@@ -52,6 +58,7 @@ class MileageLog extends Model
                 $log->distance_km = max(0, $log->end_mileage - $log->start_mileage);
             }
         });
+
     }
 
     public function vehicle(): BelongsTo
